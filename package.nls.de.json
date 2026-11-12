@@ -1,0 +1,12 @@
+{
+  "description": "Alle Claude-Code-Sitzungen aller Projekte an einer Stelle. Liest nur lokal, kein Netzwerkzugriff. Inoffiziell, nicht von Anthropic.",
+  "container.title": "Claude Projekte",
+  "view.name": "Projekte",
+  "view.welcome": "Noch keine Claude-Code-Sitzungen gefunden.\n[Dashboard öffnen](command:claudeDashboard.open)",
+  "command.open": "Dashboard öffnen",
+  "command.refresh": "Aktualisieren",
+  "command.openProject": "Projektfenster öffnen",
+  "command.openSession": "Sitzung öffnen",
+  "command.archiveProject": "Projekt archivieren",
+  "config.showMissingFolders": "Auch Projekte zeigen, deren Ordner nicht mehr existiert (z. B. verschobene oder gelöschte Projekte)."
+}

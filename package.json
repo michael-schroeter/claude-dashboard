@@ -1,0 +1,136 @@
+{
+  "name": "claude-dashboard",
+  "displayName": "Claude Dashboard",
+  "description": "%description%",
+  "version": "0.2.0",
+  "publisher": "local",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michael-schroeter/claude-dashboard"
+  },
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onWebviewPanel:claudeDashboard.panel"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claudeDashboard",
+          "title": "%container.title%",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "claudeDashboard": [
+        {
+          "id": "claudeDashboard.projects",
+          "name": "%view.name%"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "claudeDashboard.projects",
+        "contents": "%view.welcome%"
+      }
+    ],
+    "commands": [
+      {
+        "command": "claudeDashboard.open",
+        "title": "%command.open%",
+        "category": "Claude Dashboard",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "claudeDashboard.refresh",
+        "title": "%command.refresh%",
+        "category": "Claude Dashboard",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claudeDashboard.openProject",
+        "title": "%command.openProject%",
+        "category": "Claude Dashboard",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "claudeDashboard.openSession",
+        "title": "%command.openSession%",
+        "category": "Claude Dashboard"
+      },
+      {
+        "command": "claudeDashboard.archiveProject",
+        "title": "%command.archiveProject%",
+        "category": "Claude Dashboard"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claudeDashboard.open",
+          "when": "view == claudeDashboard.projects",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claudeDashboard.refresh",
+          "when": "view == claudeDashboard.projects",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claudeDashboard.openProject",
+          "when": "view == claudeDashboard.projects && viewItem == project",
+          "group": "inline"
+        },
+        {
+          "command": "claudeDashboard.archiveProject",
+          "when": "view == claudeDashboard.projects && viewItem == project",
+          "group": "organize"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claudeDashboard.openProject",
+          "when": "false"
+        },
+        {
+          "command": "claudeDashboard.openSession",
+          "when": "false"
+        },
+        {
+          "command": "claudeDashboard.archiveProject",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Claude Dashboard",
+      "properties": {
+        "claudeDashboard.showMissingFolders": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.showMissingFolders%"
+        }
+      }
+    }
+  },
+  "keywords": [
+    "claude",
+    "claude code",
+    "sessions",
+    "dashboard",
+    "ai"
+  ]
+}

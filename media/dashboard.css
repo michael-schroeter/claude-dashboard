@@ -1,0 +1,554 @@
+/* Claude Dashboard – follows the VS Code theme (light and dark), one accent color. */
+
+:root {
+  --accent: #d97757;
+  --green: var(--vscode-charts-green, #3fb950);
+  --amber: var(--vscode-charts-yellow, #d9a441);
+  --bg: var(--vscode-editor-background);
+  --fg: var(--vscode-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --line: color-mix(in srgb, var(--vscode-foreground) 11%, transparent);
+  --line-strong: color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  --card: color-mix(in srgb, var(--vscode-foreground) 3.5%, transparent);
+  --card-hover: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: 96px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--vscode-font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder, var(--accent));
+  outline-offset: 2px;
+}
+
+.sep {
+  opacity: 0.45;
+}
+
+/* ---- Header ---------------------------------------------------------------- */
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.top-inner,
+main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: 36px;
+  padding-right: 36px;
+}
+
+.top-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 16px;
+  padding-bottom: 13px;
+}
+
+.top-text {
+  min-width: 0;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+}
+
+.search {
+  position: relative;
+  flex: 0 1 300px;
+  min-width: 150px;
+}
+
+.search input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.search input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.search input:hover {
+  border-color: var(--line-strong);
+}
+
+.search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Magnifier drawn from two shapes, no image file. */
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -7px;
+  border: 1.6px solid var(--muted);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.search-icon::after {
+  content: '';
+  position: absolute;
+  left: 8.5px;
+  top: 8px;
+  width: 5px;
+  height: 1.6px;
+  border-radius: 1px;
+  background: var(--muted);
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+/* ---- Projects ------------------------------------------------------------ */
+
+main {
+  padding-top: 4px;
+  padding-bottom: 56px;
+}
+
+.project,
+.now {
+  --pc: var(--accent);
+  padding-top: 20px;
+}
+
+.project-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 26px;
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 13.5px;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.now-title {
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.meta {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Project color dot – a click opens the color picker. */
+.color-dot,
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pc);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.color-dot:hover,
+.swatch:hover {
+  transform: scale(1.25);
+}
+
+.picker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.swatch {
+  width: 13px;
+  height: 13px;
+}
+
+.swatch.is-selected {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--pc);
+}
+
+.pill {
+  flex: none;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pc) 16%, transparent);
+  color: color-mix(in srgb, var(--pc) 78%, var(--fg));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.pill-muted {
+  background: var(--card-hover);
+  color: var(--muted);
+}
+
+.link {
+  flex: none;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  transition: color 0.15s, opacity 0.15s;
+}
+
+.link:hover {
+  color: var(--fg);
+}
+
+/* "Archive" only shows while hovering the project. */
+.link-quiet {
+  opacity: 0;
+}
+
+.project:hover .link-quiet,
+.link-quiet:focus-visible {
+  opacity: 1;
+}
+
+.ghost {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.ghost:hover {
+  border-color: var(--line-strong);
+  background: var(--card-hover);
+}
+
+.arrow {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.7;
+  transition: transform 0.15s;
+}
+
+.ghost:hover .arrow {
+  transform: translateX(2px) rotate(45deg);
+}
+
+/* ---- Cards -------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 8px;
+}
+
+.card {
+  --pc: var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pc) 5%, var(--card));
+  text-align: left;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--pc) 60%, transparent);
+  background: color-mix(in srgb, var(--pc) 10%, var(--card));
+}
+
+.card.is-working {
+  border-color: color-mix(in srgb, var(--green) 50%, transparent);
+}
+
+.card.is-waiting {
+  border-color: color-mix(in srgb, var(--amber) 50%, transparent);
+}
+
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card time {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-sub {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pc) 18%, transparent);
+  color: color-mix(in srgb, var(--pc) 75%, var(--fg));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  flex: none;
+  font-weight: 600;
+}
+
+.state-working {
+  color: var(--green);
+}
+
+.state-waiting {
+  color: var(--amber);
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.55;
+}
+
+.dot-working {
+  background: var(--green);
+  opacity: 1;
+  animation: pulse 2s ease-out infinite;
+}
+
+.dot-waiting {
+  background: var(--amber);
+  opacity: 1;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* ---- Archive-------------------------------------------------------------- */
+
+.archive {
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.archive .project {
+  opacity: 0.8;
+}
+
+.archive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  transition: color 0.15s;
+}
+
+.archive-toggle:hover {
+  color: var(--fg);
+}
+
+.archive-toggle.is-open .arrow {
+  transform: rotate(135deg);
+}
+
+/* ---- Empty state ------------------------------------------------------ */
+
+.empty {
+  margin-top: 96px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty h2 {
+  margin-bottom: 4px;
+  color: var(--fg);
+  font-size: 15px;
+  white-space: normal;
+}
+
+/* ---- Narrow / accessibility ------------------------------------------- */
+
+@media (max-width: 620px) {
+  .top-inner,
+  main {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .top-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search {
+    flex: none;
+  }
+
+  .project-head .meta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
