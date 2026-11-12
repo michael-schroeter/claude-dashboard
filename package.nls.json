@@ -1,0 +1,12 @@
+{
+  "description": "All your Claude Code sessions across all projects in one place. Reads locally only, no network access. Unofficial, not affiliated with Anthropic.",
+  "container.title": "Claude Projects",
+  "view.name": "Projects",
+  "view.welcome": "No Claude Code sessions found yet.\n[Open Dashboard](command:claudeDashboard.open)",
+  "command.open": "Open Dashboard",
+  "command.refresh": "Refresh",
+  "command.openProject": "Open Project Window",
+  "command.openSession": "Open Session",
+  "command.archiveProject": "Archive Project",
+  "config.showMissingFolders": "Also show projects whose folder no longer exists (e.g. moved or deleted projects)."
+}
