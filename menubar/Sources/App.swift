@@ -9,7 +9,6 @@
 //   --columns <n>    with --demo: number of tile columns
 //   --edit           with --demo: start in edit mode
 //   --tall           with --demo: make two tiles large
-//   --hidden         run without the menu bar icon (to measure background use)
 //   --show           open the panels right away, print where they are, write
 //                    panel-main.png and panel-detail.png into the current
 //                    folder, and quit
@@ -128,8 +127,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       button.action = #selector(toggle)
     }
 
-    // For measuring background use without a second icon in the menu bar.
-    if CommandLine.arguments.contains("--hidden") { statusItem.isVisible = false }
+    // macOS remembers a hidden menu bar icon. Without the icon the app cannot
+    // be reached at all, so always bring it back at launch.
+    statusItem.isVisible = true
 
     let actions = Actions(
       openProject: { [weak self] project in
