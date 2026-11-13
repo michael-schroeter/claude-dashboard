@@ -33,20 +33,22 @@
     border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .12); z-index: 1; }
 
   /* Glass */
+  /* Cards: clear, slightly darkened glass on the blurred pane below. */
   .glass {
-    background: rgba(38, 40, 52, .46);
-    backdrop-filter: blur(26px) saturate(175%);
-    border: 1px solid rgba(255, 255, 255, .20);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -1px 0 rgba(255, 255, 255, .06),
-      0 10px 30px rgba(0, 0, 0, .28);
+    background: rgba(8, 9, 14, .34);
+    border: 1px solid rgba(255, 255, 255, .17);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .05);
   }
   .card { border-radius: 22px; }
 
   /* Panels: 8 px below the menu bar, main panel under its icon */
-  .panels { position: absolute; top: 40px; right: 96px; display: flex; align-items: flex-start; gap: 16px; z-index: 4; }
-  .panel { display: flex; flex-direction: column; gap: 10px; }
-  .main { width: var(--main, 390px); }
-  .detail { width: 392px; }
+  .panels { position: absolute; top: 32px; right: 88px; display: flex; align-items: flex-start; z-index: 4; }
+  /* Each part sits on one large pane of glass that softly blurs what is behind. */
+  .panel { display: flex; flex-direction: column; gap: 10px; padding: 8px; border-radius: 30px;
+    background: rgba(16, 18, 26, .30); backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, .13); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16); }
+  .main { width: calc(var(--main, 390px) + 18px); }
+  .detail { width: 430px; }
   .secondary { color: rgba(255, 255, 255, .62); }
   .small { font-size: 11px; }
 
@@ -122,7 +124,7 @@
       <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.200"/><path d="M10.200 10.200L14 14"/></svg>
       <svg viewBox="0 0 16 16"><rect x="1.500" y="3" width="13" height="4" rx="2"/><rect x="1.500" y="9" width="13" height="4" rx="2"/><circle cx="5" cy="5" r=".600"/><circle cx="11" cy="11" r=".600"/></svg>
       <span class="me" id="me">
-        <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>
+        <svg viewBox="0 0 18 18" stroke-linecap="round" stroke-width="1.35"><rect x="2.7" y="5.2" width="12.6" height="8.2" rx="2.6"/><path d="M9 5.2V3.400M6.600 8.300v1.800M11.400 8.300v1.800M6 13.400v2.200M12 13.400v2.200"/><circle cx="9" cy="2.450" r=".95" stroke-width="1.1"/></svg>
         <span>1</span>
       </span>
       <span>Fri 13 Nov&nbsp;&nbsp;10:42</span>
@@ -250,7 +252,7 @@
   document.getElementById('panels').innerHTML = detail + main;
   // The app's icon sits above the middle of the main panel.
   const mainWidth = columns * 190 + (columns - 1) * 10;
-  document.getElementById('me').style.right = 96 + mainWidth / 2 - 24 + 'px';
+  document.getElementById('me').style.right = 88 + (mainWidth + 18) / 2 - 24 + 'px';
 </script>
 </body>
 </html>
