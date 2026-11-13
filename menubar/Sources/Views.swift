@@ -43,8 +43,8 @@ enum GlassStyle {
   // Like Control Center: clear glass, so what lies behind stays visible, and
   // a dark tint that keeps text readable. The cards are a little darker than
   // the pane they sit on. Chosen by comparing captures with Control Center.
-  static let cardTint = Color.black.opacity(0.40)
-  static let paneTint = Color.black.opacity(0.32)
+  static let cardTint = Color.black.opacity(0.28)
+  static let paneTint = Color.black.opacity(0.20)
 
   /// In pictures, this stands in for the desktop behind the panels.
   static var backdrop: Color {

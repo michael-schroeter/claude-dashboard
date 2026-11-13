@@ -94,6 +94,17 @@ func agentIcon(scale: CGFloat = 1) -> NSImage {
   return image
 }
 
+// Blur of what lies behind a window, with a freely chosen strength – the way
+// Control Center looks. macOS offers this only through two window server
+// functions that are not part of the documented API (terminal apps have used
+// them for many years). If a future macOS drops them, the panel still works,
+// just without the soft blur.
+@_silgen_name("CGSMainConnectionID")
+private func CGSMainConnectionID() -> Int32
+@_silgen_name("CGSSetWindowBackgroundBlurRadius")
+@discardableResult
+private func CGSSetWindowBackgroundBlurRadius(_ connection: Int32, _ window: Int32, _ radius: Int32) -> Int32
+
 /// A borderless panel that can still take the keyboard (for the search field).
 private final class Panel: NSPanel {
   override var canBecomeKey: Bool { true }
@@ -242,6 +253,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     layout()
     // The self-test (--show) must not take the keyboard away from the user.
     if showAtLaunch { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
+    // Soft blur behind the glass, as in Control Center (strength chosen by
+    // comparing captures). It only shows where the panel draws glass.
+    CGSSetWindowBackgroundBlurRadius(CGSMainConnectionID(), Int32(panel.windowNumber), 18)
 
     // A click anywhere else or Escape closes the panel (with --open it
     // stays, so the look can be compared at leisure).
