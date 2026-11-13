@@ -9,6 +9,7 @@
 //   --columns <n>    with --demo: number of tile columns
 //   --edit           with --demo: start in edit mode
 //   --tall           with --demo: make two tiles large
+//   --open           open the panels right away and keep running (real look)
 //   --show           open the panels right away, print where they are, write
 //                    panel-main.png and panel-detail.png into the current
 //                    folder, and quit
@@ -110,76 +111,26 @@ private func makePanel() -> Panel {
   panel.isMovable = false
   panel.animationBehavior = .none
   panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-
   return panel
-}
-
-/// Soft-edged rounded shape for the blurred area behind the cards.
-private let backdropMask: NSImage = {
-  let radius: CGFloat = 36
-  let feather: CGFloat = 10
-  let steps = 10
-  let side = 2 * radius + 2
-  let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
-    // Each smaller shape replaces the one below with a higher opacity.
-    NSGraphicsContext.current?.compositingOperation = .copy
-    for step in 0..<steps {
-      let inset = feather * CGFloat(step) / CGFloat(steps)
-      NSColor.black.withAlphaComponent(CGFloat(step + 1) / CGFloat(steps)).setFill()
-      NSBezierPath(
-        roundedRect: rect.insetBy(dx: inset, dy: inset), xRadius: radius - inset, yRadius: radius - inset
-      ).fill()
-    }
-    return true
-  }
-  image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
-  image.resizingMode = .stretch
-  return image
-}()
-
-/// The views exist only while a panel is open. Closed, the app keeps neither
-/// the views nor their glass layers around.
-private func show<Content: View>(_ root: Content, in panel: Panel) {
-  let host = NSHostingView(rootView: root)
-  host.sizingOptions = []  // the panel decides the size, see AppDelegate.layout
-  guard !GlassStyle.flat else {
-    panel.contentView = host
-    return
-  }
-  // Like Control Center: the whole area behind the glass cards is blurred and
-  // slightly dimmed, with soft edges. The system draws this.
-  let backdrop = NSVisualEffectView()
-  backdrop.material = .fullScreenUI
-  backdrop.blendingMode = .behindWindow
-  backdrop.state = .active
-  backdrop.maskImage = backdropMask
-  host.translatesAutoresizingMaskIntoConstraints = false
-  backdrop.addSubview(host)
-  NSLayoutConstraint.activate([
-    host.leadingAnchor.constraint(equalTo: backdrop.leadingAnchor),
-    host.trailingAnchor.constraint(equalTo: backdrop.trailingAnchor),
-    host.topAnchor.constraint(equalTo: backdrop.topAnchor),
-    host.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor),
-  ])
-  panel.contentView = backdrop
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private let store: Store
   private let selection = Selection()
   let settings: Settings
+  private let sizes = PanelSizes()
   private let showAtLaunch: Bool
   private var statusItem: NSStatusItem!
-  private var mainPanel: Panel!
-  private var detailPanel: Panel!
-  private var mainHeight: CGFloat = 420
-  private var detailHeight: CGFloat = 300
+  // Both parts (overview and one project's sessions) live in one window:
+  // glass turns into an opaque gray in a window that is not the key window,
+  // and of two windows only one can be key.
+  private var panel: Panel!
   private var monitors: [Any] = []
   private var subscriptions = Set<AnyCancellable>()
   private var actions = Actions()
 
-  // Distance between the panels and to the menu bar and screen edges. Small,
-  // because the cards already keep `Settings.padding` from the panel's edge.
+  // Distance to the menu bar and screen edges. Small, because the cards
+  // already keep `Settings.padding` from the panel's edge.
   private let gap: CGFloat = 2
 
   init(demo: Bool, showAtLaunch: Bool) {
@@ -207,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // be reached at all, so always bring it back at launch.
     statusItem.isVisible = true
 
-    let actions = Actions(
+    actions = Actions(
       openProject: { [weak self] project in
         self?.close()
         if !Opener.openProject(project) { self?.codeMissing() }
@@ -224,9 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       },
       quit: { NSApp.terminate(nil) })
 
-    self.actions = actions
-    mainPanel = makePanel()
-    detailPanel = makePanel()
+    panel = makePanel()
 
     // The number of working sessions sits next to the icon.
     store.onBadge = { [weak self] working in
@@ -240,9 +189,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       .store(in: &subscriptions)
 
     if !demo { store.start() }
+    // --open: show the panel right away with the real look and keep running.
+    if CommandLine.arguments.contains("--open") {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in
+        open()
+        if let first = store.visibleProjects.first { select(first.dir) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [self] in printCaptureRect() }
+      }
+    }
     if showAtLaunch {
-      mainPanel.appearance = NSAppearance(named: .darkAqua)
-      detailPanel.appearance = NSAppearance(named: .darkAqua)
+      panel.appearance = NSAppearance(named: .darkAqua)
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [self] in
         open()
         if !settings.editing, let first = store.visibleProjects.first { select(first.dir) }
@@ -251,33 +207,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  /// The views exist only while the panel is open. Closed, the app keeps
+  /// neither the views nor their glass layers around.
   private func attachViews() {
-    show(
-      MainView(store: store, selection: selection, settings: settings, actions: actions) { [weak self] height in
-        // Not during SwiftUI's layout pass, or the panel's content keeps a stale size.
+    // Not during SwiftUI's layout pass, or the panel's content keeps a stale size.
+    let report: (ReferenceWritableKeyPath<PanelSizes, CGFloat>) -> (CGFloat) -> Void = { [weak self] key in
+      { height in
         DispatchQueue.main.async {
-          self?.mainHeight = height
-          self?.layout()
+          guard let self, self.sizes[keyPath: key] != height else { return }
+          self.sizes[keyPath: key] = height
+          self.layout()
         }
-      }, in: mainPanel)
-    show(
-      DetailView(store: store, selection: selection, settings: settings, actions: actions) { [weak self] height in
-        DispatchQueue.main.async {
-          self?.detailHeight = height
-          self?.layout()
-        }
-      }, in: detailPanel)
-  }
-
-  private func detachViews() {
-    mainPanel.contentView = NSView()
-    detailPanel.contentView = NSView()
+      }
+    }
+    let root = PanelView(
+      store: store, selection: selection, settings: settings, sizes: sizes, actions: actions,
+      onMainHeight: report(\.main), onDetailHeight: report(\.detail))
+    // No window background: everything inside is glass, like in Control Center.
+    let host = NSHostingView(rootView: root)
+    host.sizingOptions = []  // the panel's size is decided in layout()
+    panel.contentView = host
   }
 
   // MARK: Showing and hiding
 
   @objc private func toggle() {
-    if mainPanel.isVisible { close() } else { open() }
+    if panel.isVisible { close() } else { open() }
   }
 
   private func open() {
@@ -286,10 +241,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     attachViews()
     layout()
     // The self-test (--show) must not take the keyboard away from the user.
-    if showAtLaunch { mainPanel.orderFrontRegardless() } else { mainPanel.makeKeyAndOrderFront(nil) }
+    if showAtLaunch { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
 
-    // A click anywhere else or Escape closes the panels.
-    if let monitor = NSEvent.addGlobalMonitorForEvents(
+    // A click anywhere else or Escape closes the panel (with --open it
+    // stays, so the look can be compared at leisure).
+    if !CommandLine.arguments.contains("--open"), let monitor = NSEvent.addGlobalMonitorForEvents(
       matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown], handler: { [weak self] _ in self?.close() })
     {
       monitors.append(monitor)
@@ -311,34 +267,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     monitors = []
     store.foreground = false
     settings.editing = false
-    hideDetail()
-    mainPanel.orderOut(nil)
-    detachViews()
+    selection.dir = nil
+    panel.orderOut(nil)
+    panel.contentView = NSView()
   }
 
-  /// Clicking a tile opens that project's sessions next to the main panel;
+  /// Clicking a tile opens that project's sessions next to the overview;
   /// clicking it again closes them.
   private func select(_ dir: String) {
-    if selection.dir == dir {
-      hideDetail()
-      return
-    }
-    selection.dir = dir
+    selection.dir = selection.dir == dir ? nil : dir
     layout()
-    if detailPanel.parent == nil { mainPanel.addChildWindow(detailPanel, ordered: .above) }
-    detailPanel.orderFront(nil)
   }
 
   private func hideDetail() {
     selection.dir = nil
-    if detailPanel.parent != nil { mainPanel.removeChildWindow(detailPanel) }
-    detailPanel.orderOut(nil)
+    layout()
   }
 
   // MARK: Placement
 
-  /// The panels hang below the menu bar with a small gap, like Control Center,
-  /// and are only as tall as their content.
+  /// The panel hangs below the menu bar with a small gap, like Control Center.
+  /// The overview sits under the menu bar icon; a project's sessions appear to
+  /// its left (to its right if there is no room). Each part is only as tall as
+  /// its content.
   private func layout() {
     guard let button = statusItem.button, let anchor = button.window,
       let screen = anchor.screen ?? NSScreen.main
@@ -348,44 +299,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // screen, so also stay below the menu bar item itself.
     let top = min(area.maxY, anchor.frame.minY) - gap
     let maxHeight = top - area.minY - gap
+    let mainWidth = settings.mainWidth
 
-    let mainSize = NSSize(width: settings.mainWidth, height: min(mainHeight, maxHeight))
-    var x = anchor.frame.midX - mainSize.width / 2
-    x = max(area.minX + gap, min(x, area.maxX - gap - mainSize.width))
-    let mainFrame = NSRect(x: x, y: top - mainSize.height, width: mainSize.width, height: mainSize.height)
-    setFrame(mainPanel, mainFrame)
+    var x = anchor.frame.midX - mainWidth / 2
+    x = max(area.minX + gap, min(x, area.maxX - gap - mainWidth))
+    var width = mainWidth
+    var height = min(sizes.main, maxHeight)
+    var onRight = false
+    if selection.dir != nil {
+      width += Layout.detailWidth
+      height = max(height, min(sizes.detail, maxHeight))
+      if x - Layout.detailWidth >= area.minX + gap { x -= Layout.detailWidth } else { onRight = true }
+    }
+    if sizes.maxHeight != maxHeight { sizes.maxHeight = maxHeight }
+    if sizes.detailOnRight != onRight { sizes.detailOnRight = onRight }
 
-    let detailSize = NSSize(width: Layout.detailWidth, height: min(detailHeight, maxHeight))
-    // To the left of the main panel; to the right if there is no room.
-    var detailX = mainFrame.minX - gap - detailSize.width
-    if detailX < area.minX + gap { detailX = mainFrame.maxX + gap }
-    setFrame(
-      detailPanel,
-      NSRect(x: detailX, y: top - detailSize.height, width: detailSize.width, height: detailSize.height))
+    let frame = NSRect(x: x, y: top - height, width: width, height: height)
+    if panel.frame != frame { panel.setFrame(frame, display: true) }
   }
 
-  private func setFrame(_ panel: NSPanel, _ frame: NSRect) {
-    guard panel.frame != frame else { return }
-    panel.setFrame(frame, display: true)
-  }
-
-  /// For `--show`: where the panels ended up, and a picture of each one next to
-  /// the executable's working directory (drawn by the app itself, so it needs
-  /// no screen recording permission; the blurred background is not included).
+  /// For `--show`: where the panel ended up, and a picture of it in the
+  /// current folder (drawn by the app itself with the flat stand-in look).
   private func printFrames() {
     guard let button = statusItem.button, let anchor = button.window, let screen = anchor.screen else { return }
     print("screen \(screen.frame) visible \(screen.visibleFrame)")
     print("menu bar item \(anchor.frame)")
-    print("main \(mainPanel.frame) visible \(mainPanel.isVisible)")
-    print("detail \(detailPanel.frame) visible \(detailPanel.isVisible)")
-    print("gap below menu bar: \(min(screen.visibleFrame.maxY, anchor.frame.minY) - mainPanel.frame.maxY)")
+    print("panel \(panel.frame) main \(sizes.main) detail \(sizes.detail)")
+    print("gap below menu bar: \(min(screen.visibleFrame.maxY, anchor.frame.minY) - panel.frame.maxY)")
     fflush(stdout)
     if let tiff = agentIcon(scale: 12).tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) {
       try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "icon.png"))
     }
-    snapshot(mainPanel, "panel-main.png")
-    snapshot(detailPanel, "panel-detail.png")
+    snapshot(panel, "panel.png")
     NSApp.terminate(nil)
+  }
+
+  /// For `--open`: the panel's area as "x,y,w,h" for `screencapture -R`.
+  private func printCaptureRect() {
+    guard let primary = NSScreen.screens.first else { return }
+    let rect = panel.frame.insetBy(dx: -24, dy: -24).intersection(primary.frame)
+    print("\(Int(rect.minX)),\(Int(primary.frame.maxY - rect.maxY)),\(Int(rect.width)),\(Int(rect.height))")
+    fflush(stdout)
   }
 
   private func snapshot(_ panel: NSPanel, _ name: String) {
