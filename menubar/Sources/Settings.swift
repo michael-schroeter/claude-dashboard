@@ -36,6 +36,11 @@ final class Settings: ObservableObject {
   }
   private var shareTitles: DispatchWorkItem?
 
+  /// Where the folder chooser for a new project starts.
+  @Published var projectsFolder: String {
+    didSet { defaults?.set(projectsFolder, forKey: "projectsFolder") }
+  }
+
   /// Projects whose tile is two rows tall and shows the latest message.
   @Published private(set) var tall: Set<String> {
     didSet { defaults?.set(tall.sorted(), forKey: "tall") }
@@ -57,6 +62,10 @@ final class Settings: ObservableObject {
     order = defaults?.stringArray(forKey: "order") ?? []
     icons = defaults?.dictionary(forKey: "icons") as? [String: String] ?? [:]
     tall = Set(defaults?.stringArray(forKey: "tall") ?? [])
+    let usual = Paths.home + "/Claude Projects"
+    projectsFolder =
+      defaults?.string(forKey: "projectsFolder")
+      ?? (FileManager.default.fileExists(atPath: usual) ? usual : Paths.home)
     titles = defaults?.dictionary(forKey: "titles") as? [String: String] ?? [:]
   }
 

@@ -30,7 +30,16 @@ struct Strings {
       "Choose or create the folder for the new project. It opens in VS Code.",
       "Wähle oder erstelle den Ordner für das neue Projekt. Er öffnet sich in VS Code.")
   }
-  var openInCode: String { pick("Open in VS Code", "In VS Code öffnen") }
+  func defaultFolder(_ path: String) -> String {
+    pick("Folder for new projects: \(path) …", "Ordner für neue Projekte: \(path) …")
+  }
+  var defaultFolderMessage: String {
+    pick(
+      "Choose the folder in which the chooser for new projects starts.",
+      "Wähle den Ordner, in dem die Auswahl für neue Projekte startet.")
+  }
+  var choose: String { pick("Choose", "Auswählen") }
+  var openInCode: String { pick("Open as project", "Als Projekt öffnen") }
   var titleLabel: String { pick("Title", "Titel") }
   var resetOrder: String { pick("Sort by last use", "Nach letzter Nutzung sortieren") }
   var enlarge: String { pick("Large tile", "Große Kachel") }
