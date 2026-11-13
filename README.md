@@ -65,8 +65,10 @@ sessions.
   width of the panel, and **Start at login** (off by default).
 - Colors and the archive are shared with the VS Code dashboard. Order,
   symbols, tile sizes and columns belong to the app.
-- Uses Liquid Glass on macOS 26 and the standard blur material on older
-  versions.
+- Uses clear Liquid Glass on macOS 26 and the standard blur material on older
+  versions. The soft blur behind the glass comes from a window server function
+  that is not part of the documented API; should a future macOS drop it, the
+  panel works the same, just without that blur.
 
 ![Edit mode with three columns](docs/menubar-edit.jpg)
 
