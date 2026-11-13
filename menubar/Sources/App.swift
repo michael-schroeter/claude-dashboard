@@ -55,6 +55,44 @@ enum Main {
   }
 }
 
+/// The menu bar icon: a small agent drawn in outlines only (an own design).
+/// A template image, so macOS colors it for light and dark menu bars.
+func agentIcon(scale: CGFloat = 1) -> NSImage {
+  let image = NSImage(size: NSSize(width: 18 * scale, height: 18 * scale), flipped: false) { _ in
+    let transform = NSAffineTransform()
+    transform.scale(by: scale)
+    transform.concat()
+    NSColor.black.setStroke()
+    func stroke(_ path: NSBezierPath, _ width: CGFloat = 1.35) {
+      path.lineWidth = width
+      path.lineCapStyle = .round
+      path.lineJoinStyle = .round
+      path.stroke()
+    }
+    func line(_ from: NSPoint, _ to: NSPoint) -> NSBezierPath {
+      let path = NSBezierPath()
+      path.move(to: from)
+      path.line(to: to)
+      return path
+    }
+    // Body
+    stroke(NSBezierPath(roundedRect: NSRect(x: 2.7, y: 4.6, width: 12.6, height: 8.2), xRadius: 2.6, yRadius: 2.6))
+    // Antenna
+    stroke(line(NSPoint(x: 9, y: 12.8), NSPoint(x: 9, y: 14.6)))
+    stroke(NSBezierPath(ovalIn: NSRect(x: 8.05, y: 14.6, width: 1.9, height: 1.9)), 1.1)
+    // Eyes
+    stroke(line(NSPoint(x: 6.6, y: 7.9), NSPoint(x: 6.6, y: 9.7)), 1.5)
+    stroke(line(NSPoint(x: 11.4, y: 7.9), NSPoint(x: 11.4, y: 9.7)), 1.5)
+    // Legs
+    stroke(line(NSPoint(x: 6, y: 4.6), NSPoint(x: 6, y: 2.4)))
+    stroke(line(NSPoint(x: 12, y: 4.6), NSPoint(x: 12, y: 2.4)))
+    return true
+  }
+  image.isTemplate = true
+  image.accessibilityDescription = "Claude Dashboard"
+  return image
+}
+
 /// A borderless panel that can still take the keyboard (for the search field).
 private final class Panel: NSPanel {
   override var canBecomeKey: Bool { true }
@@ -76,14 +114,54 @@ private func makePanel() -> Panel {
   return panel
 }
 
+/// Soft-edged rounded shape for the blurred area behind the cards.
+private let backdropMask: NSImage = {
+  let radius: CGFloat = 36
+  let feather: CGFloat = 10
+  let steps = 10
+  let side = 2 * radius + 2
+  let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+    // Each smaller shape replaces the one below with a higher opacity.
+    NSGraphicsContext.current?.compositingOperation = .copy
+    for step in 0..<steps {
+      let inset = feather * CGFloat(step) / CGFloat(steps)
+      NSColor.black.withAlphaComponent(CGFloat(step + 1) / CGFloat(steps)).setFill()
+      NSBezierPath(
+        roundedRect: rect.insetBy(dx: inset, dy: inset), xRadius: radius - inset, yRadius: radius - inset
+      ).fill()
+    }
+    return true
+  }
+  image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+  image.resizingMode = .stretch
+  return image
+}()
+
 /// The views exist only while a panel is open. Closed, the app keeps neither
 /// the views nor their glass layers around.
 private func show<Content: View>(_ root: Content, in panel: Panel) {
-  // No window background: the cards inside are glass and float on their own,
-  // like in Control Center.
   let host = NSHostingView(rootView: root)
   host.sizingOptions = []  // the panel decides the size, see AppDelegate.layout
-  panel.contentView = host
+  guard !GlassStyle.flat else {
+    panel.contentView = host
+    return
+  }
+  // Like Control Center: the whole area behind the glass cards is blurred and
+  // slightly dimmed, with soft edges. The system draws this.
+  let backdrop = NSVisualEffectView()
+  backdrop.material = .fullScreenUI
+  backdrop.blendingMode = .behindWindow
+  backdrop.state = .active
+  backdrop.maskImage = backdropMask
+  host.translatesAutoresizingMaskIntoConstraints = false
+  backdrop.addSubview(host)
+  NSLayoutConstraint.activate([
+    host.leadingAnchor.constraint(equalTo: backdrop.leadingAnchor),
+    host.trailingAnchor.constraint(equalTo: backdrop.trailingAnchor),
+    host.topAnchor.constraint(equalTo: backdrop.topAnchor),
+    host.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor),
+  ])
+  panel.contentView = backdrop
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -118,9 +196,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     if let button = statusItem.button {
-      let image = NSImage(systemSymbolName: "square.grid.2x2", accessibilityDescription: "Claude Dashboard")
-      image?.isTemplate = true
-      button.image = image
+      button.image = agentIcon()
       button.imagePosition = .imageLeading
       button.toolTip = Strings.current.tooltip
       button.target = self
@@ -304,6 +380,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     print("detail \(detailPanel.frame) visible \(detailPanel.isVisible)")
     print("gap below menu bar: \(min(screen.visibleFrame.maxY, anchor.frame.minY) - mainPanel.frame.maxY)")
     fflush(stdout)
+    if let tiff = agentIcon(scale: 12).tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) {
+      try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "icon.png"))
+    }
     snapshot(mainPanel, "panel-main.png")
     snapshot(detailPanel, "panel-detail.png")
     NSApp.terminate(nil)
