@@ -25,6 +25,7 @@ CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".css" ContentType="text/css"/>
   <Default Extension=".svg" ContentType="image/svg+xml"/>
   <Default Extension=".png" ContentType="image/png"/>
+  <Default Extension=".jpg" ContentType="image/jpeg"/>
   <Default Extension=".md" ContentType="text/markdown"/>
   <Default Extension=".vsixmanifest" ContentType="text/xml"/>
   <Override PartName="/extension/LICENSE" ContentType="text/plain"/>
@@ -69,7 +70,11 @@ def files():
         if path.is_file():
             yield path
         else:
-            yield from sorted(p for p in path.rglob("*") if p.is_file() and p.name != ".DS_Store")
+            # docs/demo only produces the README pictures; it is not part of the extension.
+            yield from sorted(
+                p for p in path.rglob("*")
+                if p.is_file() and p.name != ".DS_Store" and "demo" not in p.relative_to(ROOT).parts
+            )
 
 
 def main():

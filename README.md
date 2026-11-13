@@ -6,6 +6,11 @@ session and the right project window comes to the front with that session open.
 
 > Unofficial community project – not affiliated with or endorsed by Anthropic.
 
+![The dashboard in a VS Code window, with the menu bar app open on top](docs/menubar.jpg)
+
+*The pictures on this page are illustrations with made-up projects, rebuilt in
+HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
+
 ## Features
 
 - **Dashboard tab:** compact cards for every session, grouped by project, with
@@ -18,6 +23,8 @@ session and the right project window comes to the front with that session open.
 - **Sidebar view "Claude Projects"** listing all projects and sessions.
 - Follows your VS Code theme, light and dark. English and German UI (follows
   the VS Code display language).
+
+![The dashboard tab with the sidebar view next to it](docs/vscode.jpg)
 
 ## Requirements
 
@@ -43,11 +50,6 @@ A small companion app puts the same overview into the macOS menu bar, in the
 style of Control Center. The number next to the icon is the count of working
 sessions.
 
-<p>
-  <img src="docs/menubar-main.png" alt="Menu bar panel: sessions that need attention and one tile per project" width="400">
-  <img src="docs/menubar-project.png" alt="Second panel: the sessions of one project" width="370">
-</p>
-
 - **Now:** sessions that are working or waiting for you, across all projects.
 - **Project tiles** show how many sessions are working or waiting. Click a
   tile to open a second panel with that project's sessions. Click the arrow
@@ -66,11 +68,7 @@ sessions.
 - Uses Liquid Glass on macOS 26 and the standard blur material on older
   versions.
 
-<p>
-  <img src="docs/menubar-edit.png" alt="Edit mode with three columns and the symbol picker" width="600">
-</p>
-
-The pictures show made-up projects, drawn without the glass effect.
+![Edit mode with three columns](docs/menubar-edit.jpg)
 
 **Light on resources:** while the panel is closed the app draws nothing and
 keeps no views in memory. It is woken by file changes instead of polling,
@@ -139,6 +137,9 @@ python3 tools/package.py
 ```
 
 The package ends up in `dist/`.
+
+The pictures on this page are rendered from the pages in `docs/demo` with
+headless Chrome: `sh docs/demo/render.sh`.
 
 ## License
 

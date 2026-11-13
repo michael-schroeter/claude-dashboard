@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- The real dashboard (media/dashboard.css + media/dashboard.js) with made-up
+     data and a stand-in for the VS Code API. Used for the README pictures. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Dashboard</title>
+<style>
+  /* Theme colors VS Code would provide (close to its default dark theme). */
+  :root {
+    --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --vscode-editor-background: #1f1f1f;
+    --vscode-foreground: #cccccc;
+    --vscode-descriptionForeground: #9d9d9d;
+    --vscode-focusBorder: #0078d4;
+    --vscode-charts-green: #3fb950;
+    --vscode-charts-yellow: #d9a441;
+  }
+</style>
+<link rel="stylesheet" href="../../media/dashboard.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="demo-data.js"></script>
+<script>
+  window.acquireVsCodeApi = function () {
+    return {
+      getState: function () { return {}; },
+      setState: function () {},
+      postMessage: function (message) {
+        if (message.type !== 'ready') return;
+        setTimeout(function () {
+          window.postMessage({ type: 'data', lang: 'en', projects: window.DEMO_PROJECTS }, '*');
+        }, 0);
+      },
+    };
+  };
+</script>
+<script src="../../media/dashboard.js"></script>
+</body>
+</html>

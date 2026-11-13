@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!-- The menu bar app rebuilt in HTML over a desktop, for the README pictures.
+     An illustration with made-up projects, not a screenshot. Sizes follow
+     menubar/Sources/Views.swift. Add #edit to the address for edit mode. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Dashboard in the menu bar</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 13px/1.25 -apple-system, BlinkMacSystemFont, sans-serif; color: #fff;
+    -webkit-font-smoothing: antialiased; overflow: hidden; position: relative;
+    background:
+      radial-gradient(60% 70% at 85% 10%, #f0a35a 0%, transparent 60%),
+      radial-gradient(55% 65% at 15% 20%, #6b4fd8 0%, transparent 65%),
+      radial-gradient(70% 70% at 60% 95%, #1c8a9e 0%, transparent 60%),
+      radial-gradient(50% 60% at 5% 95%, #c2457e 0%, transparent 60%),
+      #1b2140;
+  }
+
+  /* Desktop */
+  .menubar { position: absolute; inset: 0 0 auto 0; height: 30px; display: flex; align-items: center;
+    padding: 0 16px; gap: 18px; font-size: 13.5px; background: rgba(20, 22, 40, .28);
+    backdrop-filter: blur(30px) saturate(160%); z-index: 3; }
+  .menubar b { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .menubar .me { position: absolute; top: 3px; display: flex; align-items: center; gap: 5px; padding: 3px 8px;
+    border-radius: 6px; background: rgba(255, 255, 255, .22); }
+  .menubar svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 1.7; }
+  .window { position: absolute; left: 56px; top: 78px; width: 1010px; height: 700px; border: 0;
+    border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .12); z-index: 1; }
+
+  /* Glass */
+  .glass {
+    background: rgba(38, 40, 52, .46);
+    backdrop-filter: blur(26px) saturate(175%);
+    border: 1px solid rgba(255, 255, 255, .20);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -1px 0 rgba(255, 255, 255, .06),
+      0 10px 30px rgba(0, 0, 0, .28);
+  }
+  .card { border-radius: 22px; }
+
+  /* Panels: 8 px below the menu bar, main panel under its icon */
+  .panels { position: absolute; top: 40px; right: 96px; display: flex; align-items: flex-start; gap: 16px; z-index: 4; }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
+  .main { width: var(--main, 390px); }
+  .detail { width: 392px; }
+  .secondary { color: rgba(255, 255, 255, .62); }
+  .small { font-size: 11px; }
+
+  .header { padding: 14px; }
+  .header .line { display: flex; align-items: baseline; gap: 6px; }
+  .header h1 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; }
+  .search { margin-top: 8px; display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+    border-radius: 99px; background: rgba(255, 255, 255, .10); color: rgba(255, 255, 255, .55); }
+  .search svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  .count { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .count::before, .dot { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+  .working { color: #40ba5c; }
+  .waiting { color: #e69929; }
+
+  .sessions { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .sessions h2 { margin: 0 4px 2px; font-size: 13px; font-weight: 600; }
+  .sessions h2 span { font-weight: 400; margin-left: 4px; }
+  .row { display: flex; gap: 8px; padding: 6px 8px; border-radius: 12px; background: rgba(255, 255, 255, .07); }
+  .row .bar { width: 3px; border-radius: 2px; flex: none; }
+  .row .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .row .first, .row .second { display: flex; align-items: center; gap: 6px; }
+  .row .title { font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .excerpt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+
+  .tiles { display: grid; grid-template-columns: repeat(var(--columns, 2), 190px); gap: 10px; grid-auto-rows: 62px; }
+  .tile { position: relative; border-radius: 26px; padding: 0 8px 0 11px; overflow: hidden; }
+  .tile.tall { grid-row: span 2; }
+  .tile .top { height: 62px; display: flex; align-items: center; gap: 8px; }
+  .icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; position: relative; }
+  .icon svg { width: 18px; height: 18px; fill: #fff; }
+  .tile .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
+  .tile .info { min-width: 0; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .tile .sub { display: flex; gap: 5px; }
+  .tile .open { position: absolute; top: 11px; right: 13px; width: 15px; height: 15px; fill: none;
+    stroke: rgba(255, 255, 255, .6); stroke-width: 1.5; }
+  .tile .preview { padding-right: 5px; display: flex; flex-direction: column; gap: 2px; }
+  .tile .preview b { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .preview span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+  .tile.selected { background: color-mix(in srgb, var(--pc) 48%, rgba(38, 40, 52, .46)); }
+
+  /* Edit mode */
+  .tile.edit { border: 1px dashed rgba(255, 255, 255, .45); padding-right: 13px; }
+  .tile.edit .name { padding-right: 0; }
+  .tile.edit .buttons { display: flex; gap: 3px; margin-top: 2px; }
+  .ib { width: 26px; height: 22px; border-radius: 99px; background: rgba(255, 255, 255, .13); display: grid; place-items: center; }
+  .ib svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ib.end { margin-left: auto; }
+  .pencil { position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; display: grid; place-items: center; }
+  .pencil svg { width: 8px; height: 8px; fill: none; stroke: #000; stroke-width: 2.4; stroke-linecap: round; }
+  .tile.edit .preview { opacity: .6; }
+
+  .bottom { display: flex; align-items: center; justify-content: space-between; }
+  .round { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+  .round svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 1.6; }
+  .pill { height: 32px; padding: 0 16px; border-radius: 99px; display: grid; place-items: center; font-size: 12px; font-weight: 500; }
+  .pill.on { background: rgba(10, 110, 235, .7); }
+
+  .dhead { padding: 12px; display: flex; align-items: center; gap: 10px; }
+  .dhead .name { font-size: 15px; font-weight: 600; }
+  .dhead .meta { display: flex; gap: 8px; margin-top: 2px; white-space: nowrap; }
+  .dhead .btn { margin-left: auto; height: 30px; padding: 0 12px; border-radius: 99px; background: rgba(255, 255, 255, .11);
+    display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .dhead .btn svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 1.5; }
+</style>
+</head>
+<body>
+  <div class="menubar">
+    <b>Code</b><span>File</span><span>Edit</span><span>Selection</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
+    <div class="right">
+      <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.200"/><path d="M10.200 10.200L14 14"/></svg>
+      <svg viewBox="0 0 16 16"><rect x="1.500" y="3" width="13" height="4" rx="2"/><rect x="1.500" y="9" width="13" height="4" rx="2"/><circle cx="5" cy="5" r=".600"/><circle cx="11" cy="11" r=".600"/></svg>
+      <span class="me" id="me">
+        <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>
+        <span>1</span>
+      </span>
+      <span>Fri 13 Nov&nbsp;&nbsp;10:42</span>
+    </div>
+  </div>
+  <iframe class="window" src="vscode.html" title="Editor window"></iframe>
+  <div class="panels" id="panels"></div>
+
+<script src="demo-data.js"></script>
+<script>
+  const editing = location.hash === '#edit';
+  const PALETTE = ['#d97757', '#d9a441', '#7fb069', '#45a89f', '#4f9be0', '#8a7fe0', '#cf6fae', '#8b95a1'];
+  const ICONS = {
+    cloud: '<path d="M7 18.5a4.2 4.2 0 0 1-.6-8.36A6 6 0 0 1 18 10a4.25 4.25 0 0 1-.25 8.5z"/>',
+    book: '<path d="M3 5.5c3-1 6-1 8.3.8v12.5C9 17.200 6 17.200 3 18.200zM21 5.5c-3-1-6-1-8.3.8v12.5c2.3-1.6 5.3-1.6 8.3-.6z"/>',
+    leaf: '<path d="M20 4C10.500 4 5 8.500 5 16.500c0 1.200.2 2.400.5 3.500C13.500 20 20 15 20 4z"/>',
+    folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    banknote: '<path fill-rule="evenodd" d="M2.500 7h19v10h-19zM12 9.400a2.600 2.600 0 1 0 0 5.200 2.600 2.600 0 0 0 0-5.200z"/>',
+  };
+  const OPEN = '<rect x="2" y="2" width="12" height="12" rx="3"/><path d="M6 10l4-4M7 6h3v3"/>';
+  const WORKING_MS = 3 * 60 * 1000;
+  const RECENT_MS = 12 * 60 * 60 * 1000;
+  const now = Date.now();
+  const projects = window.DEMO_PROJECTS;
+  const tall = new Set(['-demo-weather-station', '-demo-garden-plan']);
+
+  const colorOf = (p) => PALETTE[p.color % PALETTE.length];
+  const status = (s) => (!s.openTurn ? 'done' : now - s.lastTs < WORKING_MS ? 'working' : 'waiting');
+  const LABEL = { working: 'working', waiting: 'waiting for you', done: 'done' };
+  const rel = (ts) => {
+    const m = Math.floor((now - ts) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + ' h ago';
+    const d = Math.floor(h / 24);
+    return d === 1 ? 'yesterday' : d + ' days ago';
+  };
+  const esc = (text) => text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const svg = (inner, box) => '<svg viewBox="0 0 ' + (box || '24 24') + '">' + inner + '</svg>';
+  const counts = (p) => {
+    let working = 0, waiting = 0;
+    for (const s of p.sessions) {
+      const kind = status(s);
+      if (kind === 'working') working++;
+      else if (kind === 'waiting' && now - s.lastTs < RECENT_MS) waiting++;
+    }
+    return { working, waiting };
+  };
+  const countHtml = (c) =>
+    (c.working ? '<span class="count working">' + c.working + ' working</span>' : '') +
+    (c.waiting ? '<span class="count waiting">' + c.waiting + ' waiting</span>' : '');
+
+  function row(p, s, withTag) {
+    const kind = status(s);
+    const show = kind === 'working' || (kind === 'waiting' && now - s.lastTs < RECENT_MS);
+    return '<div class="row"><span class="bar" style="background:' + colorOf(p) + '"></span><div class="text">' +
+      '<div class="first">' + (show ? '<span class="dot ' + kind + '"></span>' : '') +
+      '<span class="title">' + esc(s.title) + '</span><span class="small secondary">' + rel(s.lastTs) + '</span></div>' +
+      '<div class="second small">' +
+      (withTag ? '<span class="tag" style="background:' + colorOf(p) + '4d">' + esc(p.name) + '</span>' : '') +
+      (show ? '<span class="' + kind + '" style="white-space:nowrap">' + LABEL[kind] + '</span>' : '') +
+      '<span class="excerpt secondary">' + esc(s.excerpt) + '</span></div></div></div>';
+  }
+
+  function tile(p, selected) {
+    const c = counts(p);
+    const big = tall.has(p.dir);
+    const latest = p.sessions[0];
+    const icon = '<span class="icon" style="background:' + colorOf(p) + '">' + svg(ICONS[p.icon]) +
+      (editing ? '<span class="pencil">' + svg('<path d="M3 13l8-8 2 2-8 8H3z"/>', '16 16') + '</span>' : '') + '</span>';
+    const preview = big
+      ? '<div class="preview"><b>' + esc(latest.title) + '</b><span class="small secondary">' + esc(latest.excerpt) + '</span></div>'
+      : '';
+    if (editing) {
+      const ib = (inner, cls) => '<span class="ib ' + (cls || '') + '">' + svg(inner, '16 16') + '</span>';
+      return '<div class="tile glass edit' + (big ? ' tall' : '') + '"><div class="top">' + icon +
+        '<div class="info"><span class="name">' + esc(p.name) + '</span><div class="buttons">' +
+        ib('<path d="M10 3L5 8l5 5"/>') + ib('<path d="M6 3l5 5-5 5"/>') +
+        ib(big ? '<path d="M3 8h10M8 2v3M6.500 3.500L8 5l1.500-1.500M8 14v-3M6.500 12.500L8 11l1.500 1.500"/>'
+               : '<rect x="3.500" y="2.500" width="9" height="11" rx="2"/><path d="M8 5v6M6.500 6.500L8 5l1.500 1.500M6.500 9.500L8 11l1.500-1.500"/>') +
+        ib('<rect x="2" y="3" width="12" height="3.500" rx="1"/><path d="M3 6.500V12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6.500M6.500 9.200h3"/>', 'end') +
+        '</div></div></div>' + preview + '</div>';
+    }
+    const sub = c.working || c.waiting ? countHtml(c) : '<span class="secondary">' + rel(p.lastTs) + '</span>';
+    return '<div class="tile glass' + (big ? ' tall' : '') + (selected ? ' selected' : '') + '" style="--pc:' + colorOf(p) + '">' +
+      '<div class="top">' + icon + '<div class="info"><span class="name">' + esc(p.name) + '</span>' +
+      '<div class="sub small">' + sub + '</div></div></div>' + preview +
+      '<svg class="open" viewBox="0 0 16 16">' + OPEN + '</svg></div>';
+  }
+
+  const columns = editing ? 3 : 2;
+  const working = projects.reduce((n, p) => n + counts(p).working, 0);
+  const sessionCount = projects.reduce((n, p) => n + p.sessions.length, 0);
+  const attention = [];
+  for (const p of projects) for (const s of p.sessions) {
+    const kind = status(s);
+    if (kind === 'working' || (kind === 'waiting' && now - s.lastTs < RECENT_MS)) attention.push({ p, s, kind });
+  }
+  attention.sort((a, b) => (a.kind === b.kind ? b.s.lastTs - a.s.lastTs : a.kind === 'working' ? -1 : 1));
+
+  const selected = projects[0];
+  let main = '<div class="panel main" style="--main:' + (columns * 190 + (columns - 1) * 10) + 'px;--columns:' + columns + '">' +
+    '<div class="card glass header"><div class="line"><h1>Claude Projects</h1><span class="small secondary">' +
+    projects.length + ' projects · ' + sessionCount + ' sessions ·</span><span class="count working small">' + working + ' working</span></div>' +
+    '<div class="search">' + svg('<circle cx="10.500" cy="10.500" r="6.500"/><path d="M15.500 15.500L21 21"/>') + 'Search</div></div>';
+  if (!editing) {
+    main += '<div class="card glass sessions"><h2>Now<span class="small secondary">1 session working</span></h2>' +
+      attention.map((a) => row(a.p, a.s, true)).join('') + '</div>';
+  }
+  main += '<div class="tiles">' + projects.map((p) => tile(p, !editing && p === selected)).join('') + '</div>' +
+    '<div class="bottom"><span class="round glass">' +
+    svg('<circle cx="12" cy="12" r="3.200"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/>') +
+    '</span><span class="pill glass' + (editing ? ' on' : '') + '">' + (editing ? 'Done' : 'Edit') + '</span><span style="width:32px"></span></div></div>';
+
+  let detail = '';
+  if (!editing) {
+    const c = counts(selected);
+    detail = '<div class="panel detail"><div class="card glass dhead"><span class="icon" style="background:' + colorOf(selected) + '">' +
+      svg(ICONS[selected.icon]) + '</span><div><div class="name">' + esc(selected.name) + '</div><div class="meta small">' +
+      '<span class="secondary">' + selected.sessions.length + ' sessions</span>' + countHtml(c) + '</div></div>' +
+      '<span class="btn">' + svg(OPEN, '16 16') + 'Open window</span></div>' +
+      '<div class="card glass sessions">' + selected.sessions.map((s) => row(selected, s, false)).join('') + '</div></div>';
+  }
+  document.getElementById('panels').innerHTML = detail + main;
+  // The app's icon sits above the middle of the main panel.
+  const mainWidth = columns * 190 + (columns - 1) * 10;
+  document.getElementById('me').style.right = 96 + mainWidth / 2 - 24 + 'px';
+</script>
+</body>
+</html>
