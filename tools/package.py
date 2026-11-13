@@ -16,7 +16,7 @@ from xml.sax.saxutils import escape
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Only these files go into the extension (no notes, no CLAUDE.md).
-INCLUDE = ["package.json", "package.nls.json", "package.nls.de.json", "README.md", "LICENSE", "extension.js", "lib", "media"]
+INCLUDE = ["package.json", "package.nls.json", "package.nls.de.json", "README.md", "LICENSE", "extension.js", "lib", "media", "docs"]
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -24,6 +24,7 @@ CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".js" ContentType="application/javascript"/>
   <Default Extension=".css" ContentType="text/css"/>
   <Default Extension=".svg" ContentType="image/svg+xml"/>
+  <Default Extension=".png" ContentType="image/png"/>
   <Default Extension=".md" ContentType="text/markdown"/>
   <Default Extension=".vsixmanifest" ContentType="text/xml"/>
   <Override PartName="/extension/LICENSE" ContentType="text/plain"/>
