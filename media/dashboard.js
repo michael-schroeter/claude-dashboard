@@ -14,11 +14,19 @@
   const CARD_MIN = 232; // must match .grid in dashboard.css
   const CARD_GAP = 8;
 
-  // Muted tones that work in both light and dark themes.
+  // Muted tones that work in both light and dark themes. The menu bar app uses
+  // the same list (menubar/Sources/Store.swift) – keep both in sync, and only
+  // ever add colors at the end: a project's color is stored as its position.
   const PALETTE = [
     '#d97757', '#d9a441', '#7fb069', '#45a89f',
     '#4f9be0', '#8a7fe0', '#cf6fae', '#8b95a1',
+    '#d65c5c', '#e08a3c', '#b5c24a', '#5fb878',
+    '#4cb38a', '#3aa3c4', '#6c78e0', '#a56fe0',
+    '#c964d6', '#e0668f', '#b5836a', '#9a8f7a',
+    '#6f8f8a', '#5f6b7a', '#a9b0ba', '#b89f5a',
   ];
+  // Projects without a chosen color get one of the first eight, by name.
+  const DEFAULT_COLORS = 8;
 
   // --- Translations (English default, German when VS Code runs in German)
 
@@ -178,8 +186,9 @@
   }
 
   function colorOf(project) {
-    const index = Number.isInteger(project.color) ? project.color : hash(project.dir);
-    return PALETTE[index % PALETTE.length];
+    return Number.isInteger(project.color)
+      ? PALETTE[project.color % PALETTE.length]
+      : PALETTE[hash(project.dir) % DEFAULT_COLORS];
   }
 
   function titleOf(session) {
