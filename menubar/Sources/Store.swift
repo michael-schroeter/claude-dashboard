@@ -93,21 +93,27 @@ struct Prefs: Equatable {
   }
 }
 
-// Same palette and fallback hash as media/dashboard.js, so colors match.
+// Same palette and fallback hash as media/dashboard.js, so colors match. Keep
+// both in sync, and only ever add colors at the end: a project's color is
+// stored as its position in this list.
 let palette: [Color] = [
   0xd97757, 0xd9a441, 0x7fb069, 0x45a89f, 0x4f9be0, 0x8a7fe0, 0xcf6fae, 0x8b95a1,
+  0xd65c5c, 0xe08a3c, 0xb5c24a, 0x5fb878, 0x4cb38a, 0x3aa3c4, 0x6c78e0, 0xa56fe0,
+  0xc964d6, 0xe0668f, 0xb5836a, 0x9a8f7a, 0x6f8f8a, 0x5f6b7a, 0xa9b0ba, 0xb89f5a,
 ].map { hex in
   Color(
     red: Double((hex >> 16) & 0xff) / 255, green: Double((hex >> 8) & 0xff) / 255,
     blue: Double(hex & 0xff) / 255)
 }
+/// Projects without a chosen color get one of the first eight, by name.
+private let defaultColors: UInt32 = 8
 
 /// Position in `palette`: the chosen color, otherwise one derived from the name.
 func projectColorIndex(_ project: Project, _ prefs: Prefs) -> Int {
   if let index = prefs.colors[project.dir] { return index % palette.count }
   var hash: UInt32 = 0
   for unit in project.dir.utf16 { hash = hash &* 31 &+ UInt32(unit) }
-  return Int(hash % UInt32(palette.count))
+  return Int(hash % defaultColors)
 }
 
 func projectColor(_ project: Project, _ prefs: Prefs) -> Color {

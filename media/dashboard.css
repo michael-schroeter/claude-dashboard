@@ -247,11 +247,14 @@ h2 {
 .picker {
   flex: none;
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
-  padding: 5px 9px;
+  /* 12 swatches per row */
+  max-width: 253px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 14px;
   background: var(--card);
 }
 

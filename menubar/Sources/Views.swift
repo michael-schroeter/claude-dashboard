@@ -603,7 +603,7 @@ struct MainView: View {
       Text(t.symbolFor(project.name)).font(.system(size: 13, weight: .semibold)).lineLimit(1)
         .padding(.horizontal, 4)
       // Colors first; the picker stays open so that a symbol can follow.
-      HStack(spacing: 8) {
+      LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 6), count: perRow), spacing: 6) {
         ForEach(palette.indices, id: \.self) { index in
           Button {
             store.setColor(project.dir, index)
@@ -611,12 +611,13 @@ struct MainView: View {
             Circle().fill(palette[index])
               .frame(width: 24, height: 24)
               .overlay(Circle().strokeBorder(Color.white.opacity(index == colorIndex ? 0.95 : 0), lineWidth: 2))
-              .padding(3)
+              .frame(width: 30, height: 30)
               .contentShape(Circle())
           }
           .buttonStyle(.plain)
         }
       }
+      Divider().opacity(0.4)
       // Many symbols: they scroll inside the card instead of stretching the panel.
       ScrollView {
         LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 6), count: perRow), spacing: 6) {

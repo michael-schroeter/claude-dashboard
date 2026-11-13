@@ -18,7 +18,7 @@ HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
 - **"Now" at the top:** sessions that are working or waiting for you, plus the
   ones you used recently – across all projects.
 - **Status:** working · waiting for you · done (estimated from the session files).
-- **Organize:** give each project a color (click its color dot), archive
+- **Organize:** give each project one of 24 colors (click its color dot), archive
   projects you don't need right now and restore them later.
 - **Sidebar view "Claude Projects"** listing all projects and sessions.
 - Follows your VS Code theme, light and dark. English and German UI (follows
@@ -58,7 +58,7 @@ sessions.
   extension to be installed, because the extension in that window opens the
   session. Without it, only the window opens.
 - **Edit** (button at the bottom) lets you arrange the tiles by dragging or
-  with the arrows, give each project a symbol, switch a tile between small and
+  with the arrows, give each project a symbol and a color, switch a tile between small and
   large (a large tile also shows the latest session and Claude's last
   message), and archive or restore projects.
 - The gear menu sets the number of **columns** (2 to 5), which is also the
