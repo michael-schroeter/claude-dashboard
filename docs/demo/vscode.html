@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- A simplified editor window around the real dashboard, for the README
+     pictures. An illustration, not a screenshot. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Dashboard in the editor</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #ccc; background: #181818; display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+  .title { height: 36px; background: #181818; border-bottom: 1px solid #2b2b2b;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex: none; }
+  .light { width: 12px; height: 12px; border-radius: 50%; }
+  .title .name { flex: 1; text-align: center; color: #9d9d9d; font-size: 12px; margin-right: 52px; }
+  .main { flex: 1; display: flex; min-height: 0; }
+  .activity { width: 48px; background: #181818; border-right: 1px solid #2b2b2b;
+    display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 20px; flex: none; }
+  .activity svg { width: 24px; height: 24px; stroke: #868686; fill: none; stroke-width: 1.6; }
+  .activity .on { position: relative; }
+  .activity .on svg { stroke: #d7d7d7; }
+  .activity .on::before { content: ""; position: absolute; left: -12px; top: -6px; bottom: -6px; width: 2px; background: #0078d4; }
+  .side { width: 250px; background: #181818; border-right: 1px solid #2b2b2b; flex: none; overflow: hidden; }
+  .side h3 { margin: 0; padding: 10px 20px; font-size: 11px; font-weight: 400; letter-spacing: .04em; color: #bbb; }
+  .row { display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 12px; white-space: nowrap; }
+  .row .label { overflow: hidden; text-overflow: ellipsis; }
+  .row .time { color: #8b8b8b; font-size: 12px; flex: none; }
+  .row.session { padding-left: 34px; }
+  .row.sel { background: #37373d; }
+  .twist { width: 10px; color: #aaa; font-size: 9px; flex: none; text-align: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .bubble { width: 12px; height: 10px; border: 1.4px solid #9d9d9d; border-radius: 3px; flex: none; }
+  .editor { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #1f1f1f; }
+  .tabs { height: 35px; background: #181818; border-bottom: 1px solid #2b2b2b; display: flex; flex: none; }
+  .tab { display: flex; align-items: center; gap: 7px; padding: 0 14px; background: #1f1f1f;
+    border-right: 1px solid #2b2b2b; border-top: 1px solid #0078d4; color: #fff; }
+  .tab .x { color: #9d9d9d; margin-left: 6px; }
+  .tab .mark { width: 12px; height: 12px; border-radius: 3px; background: #d97757; }
+  iframe { flex: 1; border: 0; width: 100%; }
+  .status { height: 22px; background: #181818; border-top: 1px solid #2b2b2b; display: flex;
+    align-items: center; gap: 14px; padding: 0 10px; font-size: 12px; color: #bbb; flex: none; }
+  .status .item { display: flex; align-items: center; gap: 5px; }
+  .status .grid { width: 11px; height: 11px; border: 1.3px solid #bbb; border-radius: 2px;
+    background: linear-gradient(#bbb, #bbb) center/1.3px 100% no-repeat; }
+</style>
+</head>
+<body>
+  <div class="title">
+    <span class="light" style="background:#ff5f57"></span>
+    <span class="light" style="background:#febc2e"></span>
+    <span class="light" style="background:#28c840"></span>
+    <span class="name">weather-station</span>
+  </div>
+  <div class="main">
+    <div class="activity">
+      <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v4h4"/></svg>
+      <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>
+      <svg viewBox="0 0 24 24"><circle cx="7" cy="5.5" r="2.2"/><circle cx="7" cy="18.5" r="2.2"/><circle cx="17" cy="9" r="2.2"/><path d="M7 7.7v8.6M17 11.2c0 3-3 3.6-10 5.1"/></svg>
+      <span class="on"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>
+    </div>
+    <div class="side">
+      <h3>CLAUDE PROJECTS</h3>
+      <div id="tree"></div>
+    </div>
+    <div class="editor">
+      <div class="tabs"><div class="tab"><span class="mark"></span>Claude Dashboard<span class="x">×</span></div></div>
+      <iframe src="dashboard-frame.html" title="Claude Dashboard"></iframe>
+    </div>
+  </div>
+  <div class="status">
+    <span class="item"><span class="grid"></span>Claude Dashboard</span>
+    <span class="item">main</span>
+  </div>
+<script src="demo-data.js"></script>
+<script>
+  // Sidebar tree like the extension's "Claude Projects" view.
+  const tree = document.getElementById('tree');
+  const now = Date.now();
+  const rel = (ts) => {
+    const m = Math.floor((now - ts) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + ' h ago';
+    const d = Math.floor(h / 24);
+    return d === 1 ? 'yesterday' : d + ' days ago';
+  };
+  const add = (cls, parts) => {
+    const row = document.createElement('div');
+    row.className = 'row ' + cls;
+    for (const [tag, className, text] of parts) {
+      const node = document.createElement(tag);
+      node.className = className;
+      if (text) node.textContent = text;
+      row.append(node);
+    }
+    tree.append(row);
+    return row;
+  };
+  window.DEMO_PROJECTS.forEach((project, index) => {
+    const open = index === 0;
+    add('', [['span', 'twist', open ? '▼' : '▶'], ['span', 'label', project.name], ['span', 'time', rel(project.lastTs)]]);
+    if (!open) return;
+    for (const session of project.sessions) {
+      const working = session.openTurn && now - session.lastTs < 180000;
+      const row = add('session', [['span', working ? 'dot' : 'bubble', ''], ['span', 'label', session.title], ['span', 'time', rel(session.lastTs)]]);
+      if (working) row.firstChild.style.background = '#3fb950';
+    }
+  });
+</script>
+</body>
+</html>
