@@ -55,6 +55,27 @@ struct Prefs: Equatable {
     if let archived = json["archived"] as? [String] { prefs.archived = Set(archived) }
     return prefs
   }
+
+  /// Writes the archive into the extension's prefs.json, so the VS Code
+  /// dashboard shows the same. Everything else in the file is kept.
+  static func saveArchived(_ archived: Set<String>) {
+    let dir = Paths.extensionStorage
+    let file = dir + "/prefs.json"
+    var json: [String: Any] = [:]
+    if let data = FileManager.default.contents(atPath: file) {
+      // Never overwrite a file we cannot read.
+      guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+      json = parsed
+    }
+    let before = json["archived"] as? [String] ?? []
+    let kept = before.filter(archived.contains)
+    json["archived"] = kept + archived.subtracting(kept).sorted()
+    if json["colors"] == nil { json["colors"] = [String: Any]() }
+    guard let data = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys])
+    else { return }
+    try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+    try? data.write(to: URL(fileURLWithPath: file), options: .atomic)
+  }
 }
 
 // Same palette and fallback hash as media/dashboard.js, so colors match.
@@ -83,17 +104,30 @@ final class Store: ObservableObject {
   private let queue = DispatchQueue(label: "claude-dashboard.scan", qos: .utility)
   private var watcher: FolderWatcher?
   private var debounce: DispatchWorkItem?
-  private var tick: Timer?
+  private var timer: Timer?
   private var running = false
   private var again = false
+  private let demo: Bool
 
-  init() {}
+  init() {
+    demo = false
+  }
 
   /// Fixed content for the layout preview (`--preview`), nothing is read from disk.
   init(demo projects: [Project], now: Double) {
     self.projects = projects
     self.now = now
+    latestProjects = projects
+    demo = true
     loaded = true
+  }
+
+  /// Archiving hides a project from the overview; it deletes nothing.
+  func setArchived(_ dir: String, _ value: Bool) {
+    if value { prefs.archived.insert(dir) } else { prefs.archived.remove(dir) }
+    latestPrefs = prefs
+    if !demo { Prefs.saveArchived(prefs.archived) }
+    updateBadge()
   }
 
   var visibleProjects: [Project] { projects.filter { !prefs.archived.contains($0.dir) } }
@@ -105,22 +139,71 @@ final class Store: ObservableObject {
     }
   }
 
+  // What the last scan found. The published copies above (which the views
+  // watch) are only brought up to date while the panel is open, so a closed
+  // panel causes no drawing work at all.
+  private var latestProjects: [Project] = []
+  private var latestPrefs = Prefs()
+
+  /// Called with the number of working sessions whenever it changes; this is
+  /// the number next to the menu bar icon.
+  var onBadge: ((Int) -> Void)?
+  private var badge = -1
+
+  /// True while the panel is open. While it is closed, only the number next to
+  /// the menu bar icon matters, so the app looks at the files far less often.
+  var foreground = false {
+    didSet { if foreground { publish() } }
+  }
+
   func start() {
     refresh()
     watcher = FolderWatcher(root: Paths.sessions) { [weak self] in self?.refreshSoon() }
-    // Status and relative times change with time alone.
-    tick = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.touch() }
+    // Status and relative times change with time alone. The tolerance lets
+    // macOS run this together with other timers instead of waking up for it.
+    let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.tick() }
+    timer.tolerance = 10
+    self.timer = timer
+  }
+
+  private func tick() {
+    if foreground { touch() }
+    // A working session turns into a waiting one by time alone.
+    if badge > 0 { updateBadge() }
+  }
+
+  private func publish() {
+    if latestProjects != projects { projects = latestProjects }
+    if latestPrefs != prefs { prefs = latestPrefs }
+    if !loaded { loaded = true }
+    touch()
+  }
+
+  private func updateBadge() {
+    let now = Date().timeIntervalSince1970 * 1000
+    var count = 0
+    for project in latestProjects where !latestPrefs.archived.contains(project.dir) {
+      for session in project.sessions where status(session, now) == .working { count += 1 }
+    }
+    guard count != badge else { return }
+    badge = count
+    onBadge?(count)
   }
 
   func touch() {
     now = Date().timeIntervalSince1970 * 1000
   }
 
+  /// Sessions that are working write to their file all the time. Collect those
+  /// changes and look once: quickly while the panel is open, rarely otherwise.
   private func refreshSoon() {
-    debounce?.cancel()
-    let work = DispatchWorkItem { [weak self] in self?.refresh() }
+    guard debounce == nil else { return }
+    let work = DispatchWorkItem { [weak self] in
+      self?.debounce = nil
+      self?.refresh()
+    }
     debounce = work
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+    DispatchQueue.main.asyncAfter(deadline: .now() + (foreground ? 0.8 : 5), execute: work)
   }
 
   func refresh() {
@@ -135,10 +218,10 @@ final class Store: ObservableObject {
       let prefs = Prefs.load()
       DispatchQueue.main.async {
         self.running = false
-        if projects != self.projects { self.projects = projects }
-        if prefs != self.prefs { self.prefs = prefs }
-        if !self.loaded { self.loaded = true }
-        self.touch()
+        self.latestProjects = projects
+        self.latestPrefs = prefs
+        if self.foreground || !self.loaded { self.publish() }
+        self.updateBadge()
         if self.again {
           self.again = false
           self.refresh()
@@ -171,7 +254,7 @@ final class FolderWatcher {
     guard
       let stream = FSEventStreamCreate(
         nil, callback, &context, [self.root] as CFArray,
-        FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.5, flags)
+        FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 1.0, flags)
     else { return }
     FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
     FSEventStreamStart(stream)

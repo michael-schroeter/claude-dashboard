@@ -150,71 +150,111 @@ private func parseTimestamp(_ value: Any?) -> Double {
   return date.timeIntervalSince1970 * 1000
 }
 
-private func readSession(_ file: String, size: Int, mtimeMs: Double) -> Session {
+/// What is known about a session so far. Kept per file so that later only the
+/// lines appended since the last look have to be read.
+private struct ParseState {
   var cwd: String?
   var title: String?
   var firstPrompt: String?
   var lastPrompt: String?
-  var excerpt: String?
+  var excerpt = ""  // Claude's last reply, already stripped
   var lastTs = 0.0
   var openTurn = false
+  /// Bytes of the file that are accounted for (up to the last complete line).
+  var offset = 0
+}
+
+/// Applies entries from the end of the file, oldest first: title, Claude's
+/// last reply, last activity. Returns whether a reply from Claude is known.
+@discardableResult
+private func applyTail(_ entries: [[String: Any]], to state: inout ParseState) -> Bool {
+  var lastMessage: [String: Any]?
+  var reply: String?
+  for entry in entries {
+    let type = entry["type"] as? String
+    if type == "ai-title", let value = entry["aiTitle"] as? String {
+      state.title = value
+    } else if type == "last-prompt", let value = entry["lastPrompt"] as? String {
+      state.lastPrompt = value
+    } else if (type == "user" || type == "assistant") && !flag(entry, "isSidechain") {
+      if state.cwd == nil, let value = entry["cwd"] as? String { state.cwd = value }
+      let ts = parseTimestamp(entry["timestamp"])
+      if ts > state.lastTs { state.lastTs = ts }
+      lastMessage = entry
+      if type == "assistant" {
+        let text = messageText(entry)
+        if !text.isEmpty { reply = text }
+      }
+    }
+  }
+  if let reply { state.excerpt = plainExcerpt(reply) }
+  if let last = lastMessage {
+    let type = last["type"] as? String
+    let finished =
+      type == "assistant" && (last["message"] as? [String: Any])?["stop_reason"] as? String == "end_turn"
+    // Interrupted by the user: the turn is over even without a reply from Claude.
+    let interrupted = type == "user" && messageText(last).hasPrefix("[Request interrupted")
+    state.openTurn = !finished && !interrupted
+  }
+  return !state.excerpt.isEmpty
+}
+
+/// Length of `data` up to and including its last line break.
+private func completeLength(_ data: Data) -> Int {
+  guard let index = data.lastIndex(of: 0x0A) else { return 0 }
+  return index - data.startIndex + 1
+}
+
+/// First look at a file: its head and as much of its tail as needed.
+private func readSession(_ file: String, size: Int) -> ParseState {
+  var state = ParseState()
 
   // Head: working folder and the user's first message.
   for step in headSteps {
     let length = min(step, size)
     let entries = parseLines(readRange(file, start: 0, length: length), dropFirst: false, dropLast: length < size)
     for entry in entries {
-      if cwd == nil, let value = entry["cwd"] as? String { cwd = value }
-      if firstPrompt == nil, isHumanPrompt(entry) { firstPrompt = messageText(entry) }
-      if cwd != nil && firstPrompt != nil { break }
+      if state.cwd == nil, let value = entry["cwd"] as? String { state.cwd = value }
+      if state.firstPrompt == nil, isHumanPrompt(entry) { state.firstPrompt = messageText(entry) }
+      if state.cwd != nil && state.firstPrompt != nil { break }
     }
-    if (cwd != nil && firstPrompt != nil) || length >= size { break }
+    if (state.cwd != nil && state.firstPrompt != nil) || length >= size { break }
   }
 
   // Tail: title, Claude's last reply, last activity.
   for step in tailSteps {
     let length = min(step, size)
-    let entries = parseLines(
-      readRange(file, start: UInt64(size - length), length: length), dropFirst: length < size, dropLast: false)
-    var lastMessage: [String: Any]?
-    for entry in entries {
-      let type = entry["type"] as? String
-      if type == "ai-title", let value = entry["aiTitle"] as? String {
-        title = value
-      } else if type == "last-prompt", let value = entry["lastPrompt"] as? String {
-        lastPrompt = value
-      } else if (type == "user" || type == "assistant") && !flag(entry, "isSidechain") {
-        if cwd == nil, let value = entry["cwd"] as? String { cwd = value }
-        let ts = parseTimestamp(entry["timestamp"])
-        if ts > lastTs { lastTs = ts }
-        lastMessage = entry
-        if type == "assistant" {
-          let text = messageText(entry)
-          if !text.isEmpty { excerpt = text }
-        }
-      }
-    }
-    if let last = lastMessage {
-      let type = last["type"] as? String
-      let finished =
-        type == "assistant" && (last["message"] as? [String: Any])?["stop_reason"] as? String == "end_turn"
-      // Interrupted by the user: the turn is over even without a reply from Claude.
-      let interrupted = type == "user" && messageText(last).hasPrefix("[Request interrupted")
-      openTurn = !finished && !interrupted
-    }
-    if excerpt != nil || length >= size { break }
+    let data = readRange(file, start: UInt64(size - length), length: length)
+    // A last line that is still being written is read next time.
+    state.offset = size - data.count + completeLength(data)
+    let found = applyTail(parseLines(data, dropFirst: length < size, dropLast: false), to: &state)
+    if found || length >= size { break }
   }
+  return state
+}
 
-  if lastTs == 0 { lastTs = mtimeMs }
+/// Later looks: only the lines appended since then.
+private func readAppended(_ file: String, size: Int, state: inout ParseState) {
+  let data = readRange(file, start: UInt64(state.offset), length: size - state.offset)
+  let complete = completeLength(data)
+  guard complete > 0 else { return }
+  applyTail(parseLines(data.prefix(complete), dropFirst: false, dropLast: false), to: &state)
+  state.offset += complete
+}
+
+private func makeSession(_ file: String, _ state: ParseState, mtimeMs: Double) -> Session {
   let id = ((file as NSString).lastPathComponent as NSString).deletingPathExtension
   return Session(
     id: id,
-    cwd: cwd,
-    title: oneLine(title ?? firstPrompt ?? lastPrompt ?? "", titleMax),
-    excerpt: excerpt.map(plainExcerpt) ?? "",
-    lastTs: lastTs,
-    openTurn: openTurn)
+    cwd: state.cwd,
+    title: oneLine(state.title ?? state.firstPrompt ?? state.lastPrompt ?? "", titleMax),
+    excerpt: state.excerpt,
+    lastTs: state.lastTs == 0 ? mtimeMs : state.lastTs,
+    openTurn: state.openTurn)
 }
+
+/// Above this many new bytes a file is read from scratch instead.
+private let appendMax = 2 * 1024 * 1024
 
 private func fileStat(_ path: String) -> stat? {
   var info = stat()
@@ -232,12 +272,14 @@ private func folderMissing(_ path: String) -> Bool {
   return errno == ENOENT || errno == ENOTDIR
 }
 
-/// Scans all projects. Remembers files by size and modification time so only
-/// changed files are read again. Use from one queue only.
+/// Scans all projects. Remembers files by size and modification time: unchanged
+/// files are not opened at all, and of a file that grew only the new lines are
+/// read. Use from one queue only.
 final class SessionScanner {
   private struct Cached {
     let size: Int
     let mtimeMs: Double
+    let state: ParseState
     let session: Session
   }
   private var cache: [String: Cached] = [:]
@@ -266,8 +308,19 @@ final class SessionScanner {
           sessions.append(cached.session)
           continue
         }
-        let session = readSession(file, size: size, mtimeMs: mtimeMs)
-        cache[file] = Cached(size: size, mtimeMs: mtimeMs, session: session)
+        var state = ParseState()
+        // Release the read buffers after every file instead of at the end of the scan.
+        autoreleasepool {
+          if let cached = cache[file], size > cached.size, size - cached.state.offset <= appendMax {
+            // Session files only grow, so the known part does not change.
+            state = cached.state
+            readAppended(file, size: size, state: &state)
+          } else {
+            state = readSession(file, size: size)
+          }
+        }
+        let session = makeSession(file, state, mtimeMs: mtimeMs)
+        cache[file] = Cached(size: size, mtimeMs: mtimeMs, state: state, session: session)
         sessions.append(session)
       }
       if sessions.isEmpty { continue }
