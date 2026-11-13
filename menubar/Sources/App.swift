@@ -185,6 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self?.store.setArchived(project.dir, value)
       },
       newProject: { [weak self] in self?.newProject() },
+      chooseProjectsFolder: { [weak self] in self?.chooseProjectsFolder() },
       quit: { NSApp.terminate(nil) })
 
     panel = makePanel()
@@ -293,6 +294,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     panel.contentView = NSView()
   }
 
+  /// Gear menu: where the folder chooser for new projects starts.
+  private func chooseProjectsFolder() {
+    close()
+    let picker = NSOpenPanel()
+    picker.canChooseDirectories = true
+    picker.canChooseFiles = false
+    picker.canCreateDirectories = true
+    picker.message = Strings.current.defaultFolderMessage
+    picker.prompt = Strings.current.choose
+    picker.directoryURL = URL(fileURLWithPath: settings.projectsFolder, isDirectory: true)
+    NSApp.activate(ignoringOtherApps: true)
+    guard picker.runModal() == .OK, let folder = picker.url else { return }
+    settings.projectsFolder = folder.path
+  }
+
   /// The "+" tile: choose or create a folder and open it in VS Code. The
   /// project gets its own tile once a Claude session exists in that folder.
   private func newProject() {
@@ -304,9 +320,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     picker.allowsMultipleSelection = false
     picker.message = Strings.current.newProjectMessage
     picker.prompt = Strings.current.openInCode
-    // Start where the other projects are.
-    let usual = URL(fileURLWithPath: Paths.home + "/Claude Projects", isDirectory: true)
-    if FileManager.default.fileExists(atPath: usual.path) { picker.directoryURL = usual }
+    picker.directoryURL = URL(fileURLWithPath: settings.projectsFolder, isDirectory: true)
     NSApp.activate(ignoringOtherApps: true)
     guard picker.runModal() == .OK, let folder = picker.url else { return }
     if !Opener.openFolder(folder) { codeMissing() }

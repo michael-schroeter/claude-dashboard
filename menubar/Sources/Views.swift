@@ -16,6 +16,7 @@ struct Actions {
   var deselect: () -> Void = {}
   var setArchived: (Project, Bool) -> Void = { _, _ in }
   var newProject: () -> Void = {}
+  var chooseProjectsFolder: () -> Void = {}
   var quit: () -> Void = {}
 }
 
@@ -120,6 +121,10 @@ extension View {
 
 private func titleOf(_ session: Session, _ t: Strings) -> String {
   session.title.isEmpty ? t.untitled : session.title
+}
+
+private func shortPath(_ path: String) -> String {
+  path.hasPrefix(Paths.home) ? "~" + path.dropFirst(Paths.home.count) : path
 }
 
 // Long project names must not push the excerpt out of a session row.
@@ -337,6 +342,7 @@ struct MainView: View {
         }
         .pickerStyle(.menu)
         Button(t.resetOrder) { settings.resetOrder(store.projects.map(\.dir)) }
+        Button(t.defaultFolder(shortPath(settings.projectsFolder))) { actions.chooseProjectsFolder() }
         Divider()
         Toggle(t.loginItem, isOn: loginBinding)
         Divider()
