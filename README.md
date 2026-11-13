@@ -37,12 +37,62 @@ session and the right project window comes to the front with that session open.
 
 Updates are not automatic: to update, install the newer `.vsix` the same way.
 
+## Menu bar app (macOS, optional)
+
+A small companion app puts the same overview into the macOS menu bar. The
+number next to the icon is the count of working sessions.
+
+<p>
+  <img src="docs/menubar-main.png" alt="Menu bar panel: sessions that need attention and one tile per project" width="380">
+  <img src="docs/menubar-project.png" alt="Second panel: the sessions of one project" width="360">
+</p>
+
+- **Now:** sessions that are working or waiting for you, across all projects.
+- **Project tiles** show how many sessions are working or waiting. Click a
+  tile to open a second panel with that project's sessions. Click the arrow
+  on a tile to bring the project's VS Code window to the front.
+- Click a **session** to open it in its project window. This needs the VS Code
+  extension to be installed, because the extension in that window opens the
+  session. Without it, only the window opens.
+- Colors and the archive are taken over from the VS Code dashboard.
+- **Start at login** is off by default; switch it on in the gear menu.
+
+### Install the app
+
+Needs macOS 13 or newer.
+
+1. Download `Claude-Dashboard-menubar-<version>.zip` from the
+   [Releases](https://github.com/michael-schroeter/claude-dashboard/releases)
+   page and unzip it.
+2. Move `Claude Dashboard.app` to your Applications folder and open it.
+3. The app is not signed with an Apple developer account, so macOS blocks the
+   first start. Open **System Settings → Privacy & Security**, scroll down and
+   click **Open Anyway**. This is needed only once.
+
+To remove it, switch off "Start at login" if you used it, quit the app from
+the gear menu and delete it.
+
+### Build the app yourself
+
+With the Swift compiler that comes with Xcode (no other tools):
+
+```sh
+sh menubar/build.sh
+```
+
+The app ends up in `dist/`. An app you build yourself starts without the
+warning above.
+
+The session reader exists twice: `lib/sessions.js` for the extension and
+`menubar/Sources/Sessions.swift` for the app. Change both together.
+
 ## Privacy
 
 The extension reads Claude Code's session files (`~/.claude/projects`)
 **locally only**. It has no network access, sends nothing anywhere and loads no
 third-party scripts. Colors and the archive are stored locally in the
 extension's own storage folder.
+The menu bar app follows the same rules: local files only, no network access.
 
 ## Good to know
 
