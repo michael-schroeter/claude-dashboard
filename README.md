@@ -66,6 +66,9 @@ sessions.
 - Colors, titles and the archive are shared with the VS Code dashboard. Order,
   symbols, tile sizes and columns belong to the app.
 - Tiles keep their place; a new project is added at the end.
+- The **"+" tile** starts a new project: choose or create a folder and it
+  opens in VS Code. The project gets its tile once a Claude session exists
+  in that folder.
 - Uses clear Liquid Glass on macOS 26 and the standard blur material on older
   versions. The soft blur behind the glass comes from a window server function
   that is not part of the documented API; should a future macOS drop it, the
