@@ -184,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if self?.selection.dir == project.dir { self?.hideDetail() }
         self?.store.setArchived(project.dir, value)
       },
+      newProject: { [weak self] in self?.newProject() },
       quit: { NSApp.terminate(nil) })
 
     panel = makePanel()
@@ -290,6 +291,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     selection.dir = nil
     panel.orderOut(nil)
     panel.contentView = NSView()
+  }
+
+  /// The "+" tile: choose or create a folder and open it in VS Code. The
+  /// project gets its own tile once a Claude session exists in that folder.
+  private func newProject() {
+    close()
+    let picker = NSOpenPanel()
+    picker.canChooseDirectories = true
+    picker.canChooseFiles = false
+    picker.canCreateDirectories = true
+    picker.allowsMultipleSelection = false
+    picker.message = Strings.current.newProjectMessage
+    picker.prompt = Strings.current.openInCode
+    // Start where the other projects are.
+    let usual = URL(fileURLWithPath: Paths.home + "/Claude Projects", isDirectory: true)
+    if FileManager.default.fileExists(atPath: usual.path) { picker.directoryURL = usual }
+    NSApp.activate(ignoringOtherApps: true)
+    guard picker.runModal() == .OK, let folder = picker.url else { return }
+    if !Opener.openFolder(folder) { codeMissing() }
   }
 
   /// Clicking a tile opens that project's sessions next to the overview;

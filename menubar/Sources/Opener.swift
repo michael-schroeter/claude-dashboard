@@ -15,12 +15,16 @@ enum Opener {
   /// If the folder is already open in a window, VS Code focuses that window.
   @discardableResult
   static func openProject(_ project: Project) -> Bool {
-    guard let path = project.path, let code = codeURL else { return false }
+    guard let path = project.path else { return false }
+    return openFolder(URL(fileURLWithPath: path, isDirectory: true))
+  }
+
+  @discardableResult
+  static func openFolder(_ folder: URL) -> Bool {
+    guard let code = codeURL else { return false }
     let configuration = NSWorkspace.OpenConfiguration()
     configuration.activates = true
-    NSWorkspace.shared.open(
-      [URL(fileURLWithPath: path, isDirectory: true)], withApplicationAt: code,
-      configuration: configuration)
+    NSWorkspace.shared.open([folder], withApplicationAt: code, configuration: configuration)
     return true
   }
 

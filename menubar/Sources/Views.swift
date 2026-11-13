@@ -15,6 +15,7 @@ struct Actions {
   var select: (Project) -> Void = { _ in }
   var deselect: () -> Void = {}
   var setArchived: (Project, Bool) -> Void = { _, _ in }
+  var newProject: () -> Void = {}
   var quit: () -> Void = {}
 }
 
@@ -437,8 +438,8 @@ struct MainView: View {
         sessionCard(
           t.now, top.working > 0 ? t.nowWorking(top.working) : t.status(.waiting), top.items, rowColumns)
       }
-      if !visible.isEmpty {
-        tiles(visible, editing: settings.editing, archived: false)
+      if store.loaded && (!visible.isEmpty || !settings.editing) {
+        tiles(visible, editing: settings.editing, archived: false, withAdd: !settings.editing)
       }
       if let dir = settings.pickingIcon, let project = visible.first(where: { $0.dir == dir }) {
         symbolPicker(project)
@@ -497,8 +498,9 @@ struct MainView: View {
   }
 
   /// Puts every tile into the first free place of the grid. Large tiles take
-  /// two rows, so a small tile may fill a gap further up.
-  private func place(_ projects: [Project]) -> (items: [Placed], rows: Int) {
+  /// two rows, so a small tile may fill a gap further up. `add` is the place
+  /// of the "new project" tile, after all others.
+  private func place(_ projects: [Project], withAdd: Bool) -> (items: [Placed], rows: Int, add: Int?) {
     let columns = settings.columns
     var used = Set<Int>()  // row * columns + column
     var items: [Placed] = []
@@ -512,12 +514,16 @@ struct MainView: View {
       items.append(Placed(project: project, tall: tall, column: cell % columns, row: cell / columns))
       rows = max(rows, cell / columns + (tall ? 2 : 1))
     }
-    return (items, rows)
+    guard withAdd else { return (items, rows, nil) }
+    var cell = 0
+    while used.contains(cell) { cell += 1 }
+    return (items, max(rows, cell / columns + 1), cell)
   }
 
-  private func tiles(_ projects: [Project], editing: Bool, archived: Bool) -> some View {
+  private func tiles(_ projects: [Project], editing: Bool, archived: Bool, withAdd: Bool = false) -> some View {
     let shown = projects.map(\.dir)
-    let placed = place(projects)
+    let placed = place(projects, withAdd: withAdd)
+    let columns = settings.columns
     let stepX = Settings.tileWidth + Settings.spacing
     let stepY = Layout.tileHeight + Settings.spacing
     return ZStack(alignment: .topLeading) {
@@ -526,9 +532,14 @@ struct MainView: View {
           .frame(width: Settings.tileWidth)
           .offset(x: CGFloat(item.column) * stepX, y: CGFloat(item.row) * stepY)
       }
+      if let cell = placed.add {
+        AddTile(title: t.newProject, hint: t.newProjectHint, action: actions.newProject)
+          .frame(width: Settings.tileWidth)
+          .offset(x: CGFloat(cell % columns) * stepX, y: CGFloat(cell / columns) * stepY)
+      }
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
-    .frame(height: CGFloat(placed.rows) * stepY - Settings.spacing, alignment: .topLeading)
+    .frame(height: max(0, CGFloat(placed.rows) * stepY - Settings.spacing), alignment: .topLeading)
   }
 
   @ViewBuilder
@@ -861,6 +872,36 @@ private struct IconButton: View {
     .buttonStyle(.plain)
     .onHover { hover = $0 }
     .help(help)
+  }
+}
+
+/// The last tile: start a new project by choosing its folder.
+private struct AddTile: View {
+  let title: String
+  let hint: String
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      HStack(spacing: 8) {
+        Image(systemName: "plus")
+          .font(.system(size: 15, weight: .semibold))
+          .frame(width: 36, height: 36)
+          .background(Circle().fill(Color.primary.opacity(0.14)))
+        VStack(alignment: .leading, spacing: 2) {
+          Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+          Text(hint).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.leading, 11)
+      .padding(.trailing, 8)
+      .frame(height: Layout.tileHeight)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Layout.tile)
+      .glass(Layout.tile, interactive: true)
+    }
+    .buttonStyle(.plain)
   }
 }
 

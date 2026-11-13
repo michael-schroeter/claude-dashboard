@@ -23,6 +23,14 @@ struct Strings {
   var moveForward: String { pick("Move forward", "Nach hinten") }
   var columns: String { pick("Columns", "Spalten") }
   var chooseSymbol: String { pick("Change title, symbol and color", "Titel, Symbol und Farbe ändern") }
+  var newProject: String { pick("New project", "Neues Projekt") }
+  var newProjectHint: String { pick("Choose a folder", "Ordner wählen") }
+  var newProjectMessage: String {
+    pick(
+      "Choose or create the folder for the new project. It opens in VS Code.",
+      "Wähle oder erstelle den Ordner für das neue Projekt. Er öffnet sich in VS Code.")
+  }
+  var openInCode: String { pick("Open in VS Code", "In VS Code öffnen") }
   var titleLabel: String { pick("Title", "Titel") }
   var resetOrder: String { pick("Sort by last use", "Nach letzter Nutzung sortieren") }
   var enlarge: String { pick("Large tile", "Große Kachel") }
