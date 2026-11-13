@@ -175,7 +175,7 @@ class Prefs {
   constructor(context) {
     this.dir = context.globalStorageUri.fsPath;
     this.file = path.join(this.dir, 'prefs.json');
-    this.data = { colors: {}, archived: [] };
+    this.data = { colors: {}, archived: [], names: {} };
     this.raw = '';
     this.watcher = null;
     this.emitter = new vscode.EventEmitter();
@@ -209,9 +209,13 @@ class Prefs {
     if (raw === this.raw) return;
     try {
       const parsed = JSON.parse(raw);
+      const object = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+      // Keep everything else in the file: the menu bar app writes to it too.
       this.data = {
-        colors: parsed && typeof parsed.colors === 'object' && parsed.colors ? parsed.colors : {},
+        ...object(parsed),
+        colors: object(parsed && parsed.colors),
         archived: parsed && Array.isArray(parsed.archived) ? parsed.archived : [],
+        names: object(parsed && parsed.names),
       };
       this.raw = raw;
       this.emitter.fire();
@@ -234,6 +238,12 @@ class Prefs {
   color(dir) {
     const value = this.data.colors[dir];
     return Number.isInteger(value) ? value : null;
+  }
+
+  // Own title set in the menu bar app; without one, the folder's name.
+  title(project) {
+    const own = this.data.names[project.dir];
+    return typeof own === 'string' && own.trim() ? own.trim().slice(0, 60) : project.name;
   }
 
   isArchived(dir) {
@@ -325,7 +335,7 @@ class ProjectTree {
     if (!session) {
       const current = project.path && ownsFolder(project.path);
       const item = new vscode.TreeItem(
-        project.name,
+        this.prefs.title(project),
         current
           ? vscode.TreeItemCollapsibleState.Expanded
           : vscode.TreeItemCollapsibleState.Collapsed
@@ -425,7 +435,7 @@ class Dashboard {
       lang: LANG,
       projects: this.store.projects.map((p) => ({
         dir: p.dir,
-        name: p.name,
+        name: this.prefs.title(p),
         path: p.path && p.path.startsWith(home) ? '~' + p.path.slice(home.length) : p.path,
         missing: p.missing,
         color: this.prefs.color(p.dir),

@@ -17,8 +17,7 @@ final class Settings: ObservableObject {
   @Published var columns: Int {
     didSet { defaults?.set(columns, forKey: "columns") }
   }
-  /// Project folder names in the order the user arranged them. Empty means
-  /// "most recently used first".
+  /// Project folder names in the order of the tiles.
   @Published private(set) var order: [String] {
     didSet { defaults?.set(order, forKey: "order") }
   }
@@ -26,6 +25,17 @@ final class Settings: ObservableObject {
   @Published private(set) var icons: [String: String] {
     didSet { defaults?.set(icons, forKey: "icons") }
   }
+  /// Own titles for projects, by folder name. Without one, the tile shows the
+  /// folder's name. Copied into the extension's prefs.json so that the VS Code
+  /// dashboard shows the same titles.
+  @Published private(set) var titles: [String: String] {
+    didSet {
+      defaults?.set(titles, forKey: "titles")
+      shareTitlesSoon()
+    }
+  }
+  private var shareTitles: DispatchWorkItem?
+
   /// Projects whose tile is two rows tall and shows the latest message.
   @Published private(set) var tall: Set<String> {
     didSet { defaults?.set(tall.sorted(), forKey: "tall") }
@@ -47,10 +57,38 @@ final class Settings: ObservableObject {
     order = defaults?.stringArray(forKey: "order") ?? []
     icons = defaults?.dictionary(forKey: "icons") as? [String: String] ?? [:]
     tall = Set(defaults?.stringArray(forKey: "tall") ?? [])
+    titles = defaults?.dictionary(forKey: "titles") as? [String: String] ?? [:]
   }
 
   func icon(_ dir: String) -> String {
     icons[dir] ?? Settings.defaultIcon
+  }
+
+  func title(_ project: Project) -> String {
+    let own = (titles[project.dir] ?? "").trimmingCharacters(in: .whitespaces)
+    return own.isEmpty ? project.name : own
+  }
+
+  /// An empty title brings back the folder's name.
+  func setTitle(_ dir: String, _ text: String) {
+    if text.isEmpty { titles.removeValue(forKey: dir) } else { titles[dir] = String(text.prefix(60)) }
+  }
+
+  // Not on every keystroke: wait until typing pauses.
+  private func shareTitlesSoon() {
+    guard defaults != nil else { return }
+    shareTitles?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      guard let self else { return }
+      var names: [String: String] = [:]
+      for (dir, text) in self.titles {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty { names[dir] = trimmed }
+      }
+      Prefs.saveNames(names)
+    }
+    shareTitles = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
   }
 
   func toggleTall(_ dir: String) {
@@ -65,12 +103,18 @@ final class Settings: ObservableObject {
     2 * Settings.padding + CGFloat(columns) * Settings.tileWidth + CGFloat(columns - 1) * Settings.spacing
   }
 
-  /// Projects the user has not arranged yet (new ones) come first.
+  /// Tiles keep their place: the order is remembered, and projects that are
+  /// new are added at the end instead of moving the others.
+  func adopt(_ dirs: [String]) {
+    let known = Set(order)
+    let new = dirs.filter { !known.contains($0) }
+    if !new.isEmpty { order += new }
+  }
+
   func ordered(_ projects: [Project]) -> [Project] {
-    guard !order.isEmpty else { return projects }
     let index = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
     let arranged = projects.filter { index[$0.dir] != nil }.sorted { index[$0.dir]! < index[$1.dir]! }
-    return projects.filter { index[$0.dir] == nil } + arranged
+    return arranged + projects.filter { index[$0.dir] == nil }
   }
 
   /// Puts `dir` where `target` is. `shown` is the order currently on screen.
@@ -89,7 +133,9 @@ final class Settings: ObservableObject {
     order = list
   }
 
-  func resetOrder() {
-    order = []
+  /// Back to "most recently used first", as a new fixed order. `dirs` is the
+  /// current list of projects, most recent first.
+  func resetOrder(_ dirs: [String]) {
+    order = dirs
   }
 }

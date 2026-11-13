@@ -193,6 +193,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       self?.statusItem.button?.title = working > 0 ? " \(working)" : ""
     }
 
+    // New projects get a place at the end of the tiles.
+    store.$projects
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] projects in self?.settings.adopt(projects.map(\.dir)) }
+      .store(in: &subscriptions)
+
     // More or fewer columns change the panel's width.
     settings.$columns
       .receive(on: DispatchQueue.main)

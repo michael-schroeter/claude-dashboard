@@ -58,13 +58,14 @@ sessions.
   extension to be installed, because the extension in that window opens the
   session. Without it, only the window opens.
 - **Edit** (button at the bottom) lets you arrange the tiles by dragging or
-  with the arrows, give each project a symbol and a color, switch a tile between small and
+  with the arrows, give each project its own title, a symbol and a color, switch a tile between small and
   large (a large tile also shows the latest session and Claude's last
   message), and archive or restore projects.
 - The gear menu sets the number of **columns** (2 to 5), which is also the
   width of the panel, and **Start at login** (off by default).
-- Colors and the archive are shared with the VS Code dashboard. Order,
+- Colors, titles and the archive are shared with the VS Code dashboard. Order,
   symbols, tile sizes and columns belong to the app.
+- Tiles keep their place; a new project is added at the end.
 - Uses clear Liquid Glass on macOS 26 and the standard blur material on older
   versions. The soft blur behind the glass comes from a window server function
   that is not part of the documented API; should a future macOS drop it, the
