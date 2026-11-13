@@ -84,6 +84,11 @@ struct Prefs: Equatable {
     }
   }
 
+  /// Own project titles, for the VS Code dashboard to show.
+  static func saveNames(_ names: [String: String]) {
+    update { json in json["names"] = names }
+  }
+
   static func saveColor(_ dir: String, _ index: Int) {
     update { json in
       var colors = json["colors"] as? [String: Any] ?? [:]

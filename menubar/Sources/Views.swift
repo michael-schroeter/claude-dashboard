@@ -335,7 +335,7 @@ struct MainView: View {
           ForEach(Array(Settings.columnRange), id: \.self) { Text("\($0)").tag($0) }
         }
         .pickerStyle(.menu)
-        Button(t.resetOrder) { settings.resetOrder() }.disabled(settings.order.isEmpty)
+        Button(t.resetOrder) { settings.resetOrder(store.projects.map(\.dir)) }
         Divider()
         Toggle(t.loginItem, isOn: loginBinding)
         Divider()
@@ -415,7 +415,7 @@ struct MainView: View {
     var items: [Item] = []
     for project in projects {
       for session in project.sessions
-      where matches(project.name + " " + titleOf(session, t) + " " + session.excerpt, words) {
+      where matches(settings.title(project) + " " + project.name + " " + titleOf(session, t) + " " + session.excerpt, words) {
         items.append(Item(project: project, session: session, kind: status(session, store.now)))
       }
     }
@@ -463,8 +463,8 @@ struct MainView: View {
       }
       if store.loaded && store.projects.isEmpty { empty(t.emptyTitle, t.emptyText) }
     } else {
-      let projects = visible.filter { matches($0.name, words) }
-      let archivedHits = archived.filter { matches($0.name, words) }
+      let projects = visible.filter { matches(settings.title($0) + " " + $0.name, words) }
+      let archivedHits = archived.filter { matches(settings.title($0) + " " + $0.name, words) }
       let sessions = found(visible + archived, words)
       if !projects.isEmpty { tiles(projects, editing: false, archived: false) }
       if !archivedHits.isEmpty { tiles(archivedHits, editing: false, archived: true) }
@@ -541,14 +541,14 @@ struct MainView: View {
     let preview = latest?.excerpt ?? ""
     if editing && archived {
       EditTile(
-        name: project.name, symbol: symbol, color: color, archived: true, picking: false, tall: tall,
+        name: settings.title(project), symbol: symbol, color: color, archived: true, picking: false, tall: tall,
         previewTitle: previewTitle, preview: preview, t: t
       ) {
         actions.setArchived(project, false)
       }
     } else if editing {
       EditTile(
-        name: project.name, symbol: symbol, color: color, archived: false,
+        name: settings.title(project), symbol: symbol, color: color, archived: false,
         picking: settings.pickingIcon == project.dir, tall: tall,
         previewTitle: previewTitle, preview: preview, t: t,
         onResize: { settings.toggleTall(project.dir) },
@@ -571,7 +571,7 @@ struct MainView: View {
     } else {
       let count = counts(project, store.now)
       ProjectTile(
-        name: project.name,
+        name: settings.title(project),
         symbol: symbol,
         color: color,
         working: count.working > 0 ? t.workingCount(count.working) : nil,
@@ -600,8 +600,22 @@ struct MainView: View {
     let colorIndex = projectColorIndex(project, store.prefs)
     let perRow = max(6, Int((settings.mainWidth - 2 * pad - 20) / 38))
     return VStack(alignment: .leading, spacing: 8) {
-      Text(t.symbolFor(project.name)).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-        .padding(.horizontal, 4)
+      // Title: the folder's name unless the user types another one.
+      HStack(spacing: 8) {
+        Text(t.titleLabel).font(.system(size: 13, weight: .semibold))
+        TextField(
+          project.name,
+          text: Binding(
+            get: { settings.titles[project.dir] ?? "" },
+            set: { settings.setTitle(project.dir, $0) })
+        )
+        .textFieldStyle(.plain)
+        .font(.system(size: 13))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Color.primary.opacity(0.10)))
+      }
+      .padding(.horizontal, 4)
       // Colors first; the picker stays open so that a symbol can follow.
       LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 6), count: perRow), spacing: 6) {
         ForEach(palette.indices, id: \.self) { index in
@@ -649,7 +663,7 @@ struct MainView: View {
       title: titleOf(item.session, t),
       excerpt: item.session.excerpt,
       time: t.relTime(item.session.lastTs, now: store.now),
-      tag: shortTag(item.project.name),
+      tag: shortTag(settings.title(item.project)),
       status: item.kind == .working || recent ? item.kind : nil,
       statusText: t.status(item.kind),
       color: projectColor(item.project, store.prefs)
@@ -712,7 +726,7 @@ struct DetailView: View {
     return HStack(alignment: .center, spacing: 10) {
       IconCircle(symbol: settings.icon(project.dir), color: projectColor(project, store.prefs))
       VStack(alignment: .leading, spacing: 2) {
-        Text(project.name).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+        Text(settings.title(project)).font(.system(size: 15, weight: .semibold)).lineLimit(1)
         HStack(spacing: 8) {
           Text(t.sessions(project.sessions.count)).foregroundStyle(.secondary).lineLimit(1).fixedSize()
           if count.working > 0 { StatusCount(text: t.workingCount(count.working), status: .working) }
@@ -975,7 +989,17 @@ private struct EditTile: View {
         .help(t.chooseSymbol)
       }
       VStack(alignment: .leading, spacing: 4) {
-        Text(name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+        if archived {
+          Text(name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+        } else {
+          Button(action: onSymbol) {
+            Text(name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
+          .help(t.chooseSymbol)
+        }
         HStack(spacing: 3) {
           if !archived {
             IconButton(symbol: "chevron.left", help: t.moveBack, action: onBack)
