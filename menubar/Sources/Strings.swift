@@ -14,6 +14,19 @@ struct Strings {
   var heading: String { pick("Claude Projects", "Claude Projekte") }
   var projectsTitle: String { pick("Projects", "Projekte") }
   var sessionsTitle: String { pick("Sessions", "Sitzungen") }
+  var edit: String { pick("Edit", "Bearbeiten") }
+  var done: String { pick("Done", "Fertig") }
+  var editHint: String { pick("drag to arrange", "zum Anordnen ziehen") }
+  var archive: String { pick("Archive", "Archivieren") }
+  var restore: String { pick("Restore", "Wiederherstellen") }
+  var moveBack: String { pick("Move back", "Nach vorn") }
+  var moveForward: String { pick("Move forward", "Nach hinten") }
+  var columns: String { pick("Columns", "Spalten") }
+  var resetOrder: String { pick("Sort by last use", "Nach letzter Nutzung sortieren") }
+  var chooseSymbol: String { pick("Choose symbol", "Symbol wählen") }
+  func symbolFor(_ name: String) -> String { pick("Symbol for “\(name)”", "Symbol für „\(name)“") }
+  var enlarge: String { pick("Large tile", "Große Kachel") }
+  var shrink: String { pick("Small tile", "Kleine Kachel") }
   var search: String { pick("Search", "Suchen") }
   var loading: String { pick("Loading…", "Lädt …") }
   var now: String { pick("Now", "Aktuell") }

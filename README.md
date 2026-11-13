@@ -39,12 +39,13 @@ Updates are not automatic: to update, install the newer `.vsix` the same way.
 
 ## Menu bar app (macOS, optional)
 
-A small companion app puts the same overview into the macOS menu bar. The
-number next to the icon is the count of working sessions.
+A small companion app puts the same overview into the macOS menu bar, in the
+style of Control Center. The number next to the icon is the count of working
+sessions.
 
 <p>
-  <img src="docs/menubar-main.png" alt="Menu bar panel: sessions that need attention and one tile per project" width="380">
-  <img src="docs/menubar-project.png" alt="Second panel: the sessions of one project" width="360">
+  <img src="docs/menubar-main.png" alt="Menu bar panel: sessions that need attention and one tile per project" width="400">
+  <img src="docs/menubar-project.png" alt="Second panel: the sessions of one project" width="370">
 </p>
 
 - **Now:** sessions that are working or waiting for you, across all projects.
@@ -54,8 +55,29 @@ number next to the icon is the count of working sessions.
 - Click a **session** to open it in its project window. This needs the VS Code
   extension to be installed, because the extension in that window opens the
   session. Without it, only the window opens.
-- Colors and the archive are taken over from the VS Code dashboard.
-- **Start at login** is off by default; switch it on in the gear menu.
+- **Edit** (button at the bottom) lets you arrange the tiles by dragging or
+  with the arrows, give each project a symbol, switch a tile between small and
+  large (a large tile also shows the latest session and Claude's last
+  message), and archive or restore projects.
+- The gear menu sets the number of **columns** (2 to 5), which is also the
+  width of the panel, and **Start at login** (off by default).
+- Colors and the archive are shared with the VS Code dashboard. Order,
+  symbols, tile sizes and columns belong to the app.
+- Uses Liquid Glass on macOS 26 and the standard blur material on older
+  versions.
+
+<p>
+  <img src="docs/menubar-edit.png" alt="Edit mode with three columns and the symbol picker" width="600">
+</p>
+
+The pictures show made-up projects, drawn without the glass effect.
+
+**Light on resources:** while the panel is closed the app draws nothing and
+keeps no views in memory. It is woken by file changes instead of polling,
+looks at most every 5 seconds, and reads only the lines that were appended to
+a session file. Measured on an Apple silicon Mac: no measurable CPU use when
+no session is running, about 0.2 % of one core while a session is working,
+around 50 MB of memory.
 
 ### Install the app
 
