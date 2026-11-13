@@ -10,8 +10,8 @@ final class Settings: ObservableObject {
   static let tileWidth: CGFloat = 190
   /// Distance between tiles and cards.
   static let spacing: CGFloat = 10
-  /// Room around the cards: the blurred backdrop reaches a little beyond them.
-  static let padding: CGFloat = 14
+  /// Room around the cards, so their glass edges and shadows are not cut off.
+  static let padding: CGFloat = 8
   static let defaultIcon = "folder.fill"
 
   @Published var columns: Int {

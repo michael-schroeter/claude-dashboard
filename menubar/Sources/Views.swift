@@ -24,7 +24,7 @@ final class Selection: ObservableObject {
 }
 
 enum Layout {
-  static let detailWidth: CGFloat = 380
+  static let detailWidth: CGFloat = 430
   static let nowMax = 5
   static let searchMax = 30
   static let tileHeight: CGFloat = 62
@@ -40,6 +40,12 @@ enum GlassStyle {
   /// Draw a flat stand-in instead of real glass (for pictures of the panels).
   static var flat = false
 
+  // Like Control Center: clear glass, so what lies behind stays visible, and
+  // a dark tint that keeps text readable. The cards are a little darker than
+  // the pane they sit on. Chosen by comparing captures with Control Center.
+  static let cardTint = Color.black.opacity(0.40)
+  static let paneTint = Color.black.opacity(0.32)
+
   /// In pictures, this stands in for the desktop behind the panels.
   static var backdrop: Color {
     flat ? Color(red: 0.11, green: 0.14, blue: 0.21) : Color.clear
@@ -48,8 +54,9 @@ enum GlassStyle {
 
 @available(macOS 26.0, *)
 private func liquidGlass(_ tint: Color?, _ interactive: Bool) -> Glass {
-  var glass = Glass.regular
-  if let tint { glass = glass.tint(tint) }
+  // Clear glass like the controls in Control Center: what lies behind stays
+  // visible. A slight dark tint keeps the text readable on bright backgrounds.
+  var glass = Glass.clear.tint(tint ?? GlassStyle.cardTint)
   if interactive { glass = glass.interactive() }
   return glass
 }
@@ -76,6 +83,22 @@ extension View {
           shape.fill(.regularMaterial)
           if let tint { shape.fill(tint) }
         })
+    }
+  }
+}
+
+/// The area behind the cards: one large pane of clear glass, so the space
+/// between the cards is glass too.
+private struct Backdrop: View {
+  private let shape = RoundedRectangle(cornerRadius: 30, style: .continuous)
+
+  var body: some View {
+    if GlassStyle.flat {
+      GlassStyle.backdrop
+    } else if #available(macOS 26.0, *) {
+      Color.clear.glassEffect(Glass.clear.tint(GlassStyle.paneTint), in: shape)
+    } else {
+      shape.fill(.ultraThinMaterial)
     }
   }
 }
@@ -133,6 +156,45 @@ private struct SymbolChoice: Identifiable {
   let id: String
 }
 
+// MARK: - Whole panel
+
+/// Sizes the two parts and the window agree on (see AppDelegate.layout).
+final class PanelSizes: ObservableObject {
+  @Published var main: CGFloat = 420
+  @Published var detail: CGFloat = 300
+  @Published var maxHeight: CGFloat = 800
+  @Published var detailOnRight = false
+}
+
+/// Overview and, next to it, the sessions of the selected project.
+struct PanelView: View {
+  @ObservedObject var store: Store
+  @ObservedObject var selection: Selection
+  @ObservedObject var settings: Settings
+  @ObservedObject var sizes: PanelSizes
+  var actions = Actions()
+  var onMainHeight: (CGFloat) -> Void = { _ in }
+  var onDetailHeight: (CGFloat) -> Void = { _ in }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 0) {
+      if !sizes.detailOnRight { detail }
+      MainView(store: store, selection: selection, settings: settings, actions: actions, onHeight: onMainHeight)
+        .frame(height: min(sizes.main, sizes.maxHeight))
+      if sizes.detailOnRight { detail }
+    }
+    .frame(
+      maxWidth: .infinity, maxHeight: .infinity, alignment: sizes.detailOnRight ? .topLeading : .topTrailing)
+  }
+
+  @ViewBuilder private var detail: some View {
+    if selection.dir != nil {
+      DetailView(store: store, selection: selection, settings: settings, actions: actions, onHeight: onDetailHeight)
+        .frame(height: min(sizes.detail, sizes.maxHeight))
+    }
+  }
+}
+
 // MARK: - Main panel
 
 struct MainView: View {
@@ -177,7 +239,7 @@ struct MainView: View {
     }
     .frame(width: settings.mainWidth)
     .frame(maxHeight: .infinity, alignment: .top)
-    .background(GlassStyle.backdrop)
+    .background(Backdrop())
     .onPreferenceChange(HeightKey.self) { onHeight($0) }
   }
 
@@ -580,7 +642,7 @@ struct DetailView: View {
     }
     .frame(width: Layout.detailWidth)
     .frame(maxHeight: .infinity, alignment: .top)
-    .background(GlassStyle.backdrop)
+    .background(Backdrop())
     .onPreferenceChange(HeightKey.self) { onHeight($0 + pad) }
   }
 
