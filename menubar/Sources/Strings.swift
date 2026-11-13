@@ -23,8 +23,10 @@ struct Strings {
   var moveForward: String { pick("Move forward", "Nach hinten") }
   var columns: String { pick("Columns", "Spalten") }
   var resetOrder: String { pick("Sort by last use", "Nach letzter Nutzung sortieren") }
-  var chooseSymbol: String { pick("Choose symbol", "Symbol wählen") }
-  func symbolFor(_ name: String) -> String { pick("Symbol for “\(name)”", "Symbol für „\(name)“") }
+  var chooseSymbol: String { pick("Choose symbol and color", "Symbol und Farbe wählen") }
+  func symbolFor(_ name: String) -> String {
+    pick("Symbol and color for “\(name)”", "Symbol und Farbe für „\(name)“")
+  }
   var enlarge: String { pick("Large tile", "Große Kachel") }
   var shrink: String { pick("Small tile", "Kleine Kachel") }
   var search: String { pick("Search", "Suchen") }

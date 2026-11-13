@@ -140,21 +140,59 @@ private func counts(_ project: Project, _ now: Double) -> (working: Int, waiting
   return (working, waiting)
 }
 
-// Symbols offered for projects (SF Symbols, part of macOS).
+// Symbols offered for projects (SF Symbols, part of macOS). Names this macOS
+// version does not know are left out when the list is first used.
 private let symbolChoices: [String] = [
-  "folder.fill", "house.fill", "briefcase.fill", "doc.text.fill", "book.fill", "graduationcap.fill",
-  "hammer.fill", "wrench.and.screwdriver.fill", "gearshape.fill", "terminal.fill",
-  "chevron.left.forwardslash.chevron.right", "cpu.fill", "server.rack", "globe", "network", "cloud.fill",
-  "lock.fill", "shield.fill", "key.fill", "cart.fill", "creditcard.fill", "banknote.fill",
-  "chart.bar.fill", "chart.pie.fill", "calendar", "envelope.fill", "bubble.left.fill", "person.fill",
-  "person.2.fill", "heart.fill", "star.fill", "bolt.fill", "flame.fill", "leaf.fill", "pawprint.fill",
-  "gamecontroller.fill", "music.note", "film.fill", "camera.fill", "paintbrush.fill", "cube.fill",
-  "printer.fill", "tv.fill", "car.fill", "airplane", "map.fill", "lightbulb.fill", "puzzlepiece.fill",
-]
-
-private struct SymbolChoice: Identifiable {
-  let id: String
-}
+  "folder.fill", "folder.badge.gearshape", "tray.full.fill", "archivebox.fill", "doc.fill",
+  "doc.text.fill", "doc.richtext.fill", "doc.on.doc.fill", "note.text", "list.bullet.clipboard.fill",
+  "book.fill", "books.vertical.fill", "book.closed.fill", "bookmark.fill", "newspaper.fill",
+  "text.book.closed.fill", "graduationcap.fill", "studentdesk", "pencil", "pencil.and.ruler.fill",
+  "highlighter", "paintbrush.fill", "paintbrush.pointed.fill", "paintpalette.fill", "scribble.variable",
+  "lasso", "ruler.fill", "scissors", "eyedropper.halffull", "wand.and.stars", "house.fill",
+  "building.2.fill", "building.columns.fill", "storefront.fill", "bed.double.fill", "sofa.fill",
+  "lamp.desk.fill", "lightbulb.fill", "door.left.hand.closed", "window.vertical.closed", "briefcase.fill",
+  "case.fill", "suitcase.fill", "bag.fill", "cart.fill", "basket.fill", "creditcard.fill", "banknote.fill",
+  "dollarsign.circle.fill", "eurosign.circle.fill", "chart.bar.fill", "chart.pie.fill",
+  "chart.line.uptrend.xyaxis", "chart.xyaxis.line", "percent", "function", "sum", "number",
+  "plusminus.circle.fill", "x.squareroot", "calendar", "clock.fill", "alarm.fill", "timer",
+  "stopwatch.fill", "hourglass", "bell.fill", "flag.fill", "tag.fill", "ticket.fill", "envelope.fill",
+  "paperplane.fill", "tray.fill", "bubble.left.fill", "bubble.left.and.bubble.right.fill", "phone.fill",
+  "video.fill", "megaphone.fill", "mic.fill", "quote.bubble.fill", "person.fill", "person.2.fill",
+  "person.3.fill", "person.crop.circle.fill", "figure.walk", "figure.run", "figure.wave",
+  "hand.raised.fill", "hand.thumbsup.fill", "hands.clap.fill", "heart.fill", "star.fill", "sparkles",
+  "bolt.fill", "flame.fill", "drop.fill", "snowflake", "sun.max.fill", "moon.fill", "cloud.fill",
+  "cloud.rain.fill", "cloud.bolt.fill", "wind", "tornado", "rainbow", "thermometer.medium",
+  "umbrella.fill", "leaf.fill", "tree.fill", "mountain.2.fill", "pawprint.fill", "tortoise.fill",
+  "hare.fill", "bird.fill", "fish.fill", "ant.fill", "ladybug.fill", "lizard.fill", "dog.fill", "cat.fill",
+  "terminal.fill", "chevron.left.forwardslash.chevron.right", "curlybraces", "curlybraces.square.fill",
+  "cpu.fill", "memorychip.fill", "server.rack", "externaldrive.fill", "internaldrive.fill",
+  "opticaldiscdrive.fill", "desktopcomputer", "laptopcomputer", "display", "keyboard.fill",
+  "computermouse.fill", "printer.fill", "scanner.fill", "tv.fill", "iphone", "ipad", "applewatch",
+  "headphones", "hifispeaker.fill", "gamecontroller.fill", "antenna.radiowaves.left.and.right", "wifi",
+  "network", "globe", "globe.europe.africa.fill", "link", "lock.fill", "lock.open.fill", "key.fill",
+  "shield.fill", "shield.lefthalf.filled", "checkmark.shield.fill", "eye.fill", "eye.slash.fill", "faceid",
+  "touchid", "gearshape.fill", "gearshape.2.fill", "wrench.fill", "wrench.and.screwdriver.fill",
+  "hammer.fill", "screwdriver.fill", "slider.horizontal.3", "switch.2", "dial.medium.fill", "power",
+  "cube.fill", "cube.transparent.fill", "shippingbox.fill", "square.stack.3d.up.fill",
+  "rectangle.3.group.fill", "square.grid.2x2.fill", "circle.grid.3x3.fill", "hexagon.fill", "seal.fill",
+  "puzzlepiece.fill", "camera.fill", "photo.fill", "photo.on.rectangle.angled", "film.fill",
+  "play.rectangle.fill", "music.note", "music.mic", "guitars.fill", "pianokeys", "theatermasks.fill",
+  "map.fill", "mappin.and.ellipse", "location.fill", "safari.fill", "signpost.right.fill",
+  "binoculars.fill", "car.fill", "bus.fill", "tram.fill", "bicycle", "airplane", "ferry.fill",
+  "sailboat.fill", "fuelpump.fill", "bolt.car.fill", "scooter", "figure.hiking", "tent.fill",
+  "backpack.fill", "globe.americas.fill", "cross.case.fill", "heart.text.square.fill", "pills.fill",
+  "stethoscope", "bandage.fill", "brain.head.profile", "lungs.fill", "dumbbell.fill", "sportscourt.fill",
+  "soccerball", "basketball.fill", "tennis.racket", "trophy.fill", "medal.fill", "gift.fill",
+  "party.popper.fill", "balloon.fill", "birthday.cake.fill", "fork.knife", "cup.and.saucer.fill",
+  "wineglass.fill", "mug.fill", "carrot.fill", "frying.pan.fill", "refrigerator.fill", "washer.fill",
+  "shower.fill", "bathtub.fill", "tshirt.fill", "shoe.fill", "atom", "testtube.2", "flask.fill",
+  "microbe.fill", "waveform", "waveform.path.ecg", "bolt.horizontal.fill", "battery.100", "powerplug.fill",
+  "lightbulb.led.fill", "sensor.fill", "thermometer.sun.fill", "fan.fill", "heater.vertical.fill",
+  "air.conditioner.horizontal.fill", "spigot.fill", "solarpanel.fill", "homekit", "robotic.vacuum.fill",
+  "light.beacon.max.fill", "questionmark.circle.fill", "exclamationmark.triangle.fill", "info.circle.fill",
+  "checkmark.circle.fill", "xmark.circle.fill", "plus.circle.fill", "infinity", "target", "scope",
+  "flag.checkered",
+].filter { NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil }
 
 // MARK: - Whole panel
 
@@ -559,24 +597,46 @@ struct MainView: View {
   private func symbolPicker(_ project: Project) -> some View {
     let color = projectColor(project, store.prefs)
     let current = settings.icon(project.dir)
+    let colorIndex = projectColorIndex(project, store.prefs)
     let perRow = max(6, Int((settings.mainWidth - 2 * pad - 20) / 38))
     return VStack(alignment: .leading, spacing: 8) {
       Text(t.symbolFor(project.name)).font(.system(size: 13, weight: .semibold)).lineLimit(1)
         .padding(.horizontal, 4)
-      Columns(items: symbolChoices.map(SymbolChoice.init), count: perRow, spacing: 6, gap: 6) { choice in
-        Button {
-          settings.setIcon(project.dir, choice.id)
-          settings.pickingIcon = nil
-        } label: {
-          Image(systemName: choice.id)
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(choice.id == current ? Color.white : Color.primary)
-            .frame(width: 30, height: 30)
-            .background(Circle().fill(choice.id == current ? color : Color.primary.opacity(0.10)))
-            .contentShape(Circle())
+      // Colors first; the picker stays open so that a symbol can follow.
+      HStack(spacing: 8) {
+        ForEach(palette.indices, id: \.self) { index in
+          Button {
+            store.setColor(project.dir, index)
+          } label: {
+            Circle().fill(palette[index])
+              .frame(width: 24, height: 24)
+              .overlay(Circle().strokeBorder(Color.white.opacity(index == colorIndex ? 0.95 : 0), lineWidth: 2))
+              .padding(3)
+              .contentShape(Circle())
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
+      // Many symbols: they scroll inside the card instead of stretching the panel.
+      ScrollView {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 6), count: perRow), spacing: 6) {
+          ForEach(symbolChoices, id: \.self) { name in
+            Button {
+              settings.setIcon(project.dir, name)
+            } label: {
+              Image(systemName: name)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(name == current ? Color.white : Color.primary)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(name == current ? color : Color.primary.opacity(0.10)))
+                .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+          }
+        }
+        .padding(.vertical, 2)
+      }
+      .frame(height: 210)
     }
     .padding(12)
     .glass(Layout.card)

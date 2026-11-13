@@ -56,9 +56,9 @@ struct Prefs: Equatable {
     return prefs
   }
 
-  /// Writes the archive into the extension's prefs.json, so the VS Code
-  /// dashboard shows the same. Everything else in the file is kept.
-  static func saveArchived(_ archived: Set<String>) {
+  /// Changes the extension's prefs.json, so the VS Code dashboard shows the
+  /// same colors and archive. Everything else in the file is kept.
+  private static func update(_ change: (inout [String: Any]) -> Void) {
     let dir = Paths.extensionStorage
     let file = dir + "/prefs.json"
     var json: [String: Any] = [:]
@@ -67,19 +67,34 @@ struct Prefs: Equatable {
       guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
       json = parsed
     }
-    let before = json["archived"] as? [String] ?? []
-    let kept = before.filter(archived.contains)
-    json["archived"] = kept + archived.subtracting(kept).sorted()
     if json["colors"] == nil { json["colors"] = [String: Any]() }
+    if json["archived"] == nil { json["archived"] = [String]() }
+    change(&json)
     guard let data = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys])
     else { return }
     try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
     try? data.write(to: URL(fileURLWithPath: file), options: .atomic)
   }
+
+  static func saveArchived(_ archived: Set<String>) {
+    update { json in
+      let before = json["archived"] as? [String] ?? []
+      let kept = before.filter(archived.contains)
+      json["archived"] = kept + archived.subtracting(kept).sorted()
+    }
+  }
+
+  static func saveColor(_ dir: String, _ index: Int) {
+    update { json in
+      var colors = json["colors"] as? [String: Any] ?? [:]
+      colors[dir] = index
+      json["colors"] = colors
+    }
+  }
 }
 
 // Same palette and fallback hash as media/dashboard.js, so colors match.
-private let palette: [Color] = [
+let palette: [Color] = [
   0xd97757, 0xd9a441, 0x7fb069, 0x45a89f, 0x4f9be0, 0x8a7fe0, 0xcf6fae, 0x8b95a1,
 ].map { hex in
   Color(
@@ -87,11 +102,16 @@ private let palette: [Color] = [
     blue: Double(hex & 0xff) / 255)
 }
 
-func projectColor(_ project: Project, _ prefs: Prefs) -> Color {
-  if let index = prefs.colors[project.dir] { return palette[index % palette.count] }
+/// Position in `palette`: the chosen color, otherwise one derived from the name.
+func projectColorIndex(_ project: Project, _ prefs: Prefs) -> Int {
+  if let index = prefs.colors[project.dir] { return index % palette.count }
   var hash: UInt32 = 0
   for unit in project.dir.utf16 { hash = hash &* 31 &+ UInt32(unit) }
-  return palette[Int(hash % UInt32(palette.count))]
+  return Int(hash % UInt32(palette.count))
+}
+
+func projectColor(_ project: Project, _ prefs: Prefs) -> Color {
+  palette[projectColorIndex(project, prefs)]
 }
 
 final class Store: ObservableObject {
@@ -128,6 +148,13 @@ final class Store: ObservableObject {
     latestPrefs = prefs
     if !demo { Prefs.saveArchived(prefs.archived) }
     updateBadge()
+  }
+
+  /// The color is shared with the VS Code dashboard.
+  func setColor(_ dir: String, _ index: Int) {
+    prefs.colors[dir] = index
+    latestPrefs = prefs
+    if !demo { Prefs.saveColor(dir, index) }
   }
 
   var visibleProjects: [Project] { projects.filter { !prefs.archived.contains($0.dir) } }
