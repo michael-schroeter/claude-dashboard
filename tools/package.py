@@ -15,6 +15,7 @@ import zipfile
 from xml.sax.saxutils import escape
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+APP = "Claude Dashboard.app"
 # Only these files go into the extension (no notes, no CLAUDE.md).
 INCLUDE = ["package.json", "package.nls.json", "package.nls.de.json", "README.md", "LICENSE", "extension.js", "lib", "media", "docs"]
 
@@ -28,7 +29,11 @@ CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".jpg" ContentType="image/jpeg"/>
   <Default Extension=".md" ContentType="text/markdown"/>
   <Default Extension=".vsixmanifest" ContentType="text/xml"/>
+  <Default Extension=".plist" ContentType="application/xml"/>
+  <Default Extension=".icns" ContentType="image/icns"/>
   <Override PartName="/extension/LICENSE" ContentType="text/plain"/>
+  <Override PartName="/extension/menubar-app/Claude Dashboard.app/Contents/MacOS/ClaudeDashboard" ContentType="application/octet-stream"/>
+  <Override PartName="/extension/menubar-app/Claude Dashboard.app/Contents/_CodeSignature/CodeResources" ContentType="application/xml"/>
 </Types>
 """
 
@@ -77,6 +82,17 @@ def files():
             )
 
 
+def app_files(pkg):
+    """The menu bar app from dist/ (build it first: sh menubar/build.sh).
+    zipfile keeps the file modes, so the program stays executable."""
+    app = ROOT / "dist" / APP
+    version = app / "Contents" / "Info.plist"
+    if not version.exists() or f"<string>{pkg['version']}</string>" not in version.read_text("utf-8"):
+        raise SystemExit(f"dist/{APP} is missing or not version {pkg['version']}: run sh menubar/build.sh first")
+    for path in sorted(p for p in app.rglob("*") if p.is_file()):
+        yield path, "extension/menubar-app/" + path.relative_to(ROOT / "dist").as_posix()
+
+
 def main():
     pkg = json.loads((ROOT / "package.json").read_text("utf-8"))
     out = ROOT / "dist" / f"{pkg['name']}-{pkg['version']}.vsix"
@@ -86,6 +102,9 @@ def main():
         z.writestr("extension.vsixmanifest", manifest(pkg))
         for path in files():
             name = "extension/" + path.relative_to(ROOT).as_posix()
+            z.write(path, name)
+            print("  ", name)
+        for path, name in app_files(pkg):
             z.write(path, name)
             print("  ", name)
     print(out)

@@ -2,7 +2,7 @@
   "name": "claude-dashboard",
   "displayName": "Claude Dashboard",
   "description": "%description%",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "publisher": "local",
   "private": true,
   "license": "MIT",
@@ -73,6 +73,11 @@
         "command": "claudeDashboard.archiveProject",
         "title": "%command.archiveProject%",
         "category": "Claude Dashboard"
+      },
+      {
+        "command": "claudeDashboard.installMenubar",
+        "title": "%command.installMenubar%",
+        "category": "Claude Dashboard"
       }
     ],
     "menus": {
@@ -86,6 +91,11 @@
           "command": "claudeDashboard.refresh",
           "when": "view == claudeDashboard.projects",
           "group": "navigation@2"
+        },
+        {
+          "command": "claudeDashboard.installMenubar",
+          "when": "view == claudeDashboard.projects && isMac",
+          "group": "more@1"
         }
       ],
       "view/item/context": [
@@ -112,6 +122,10 @@
         {
           "command": "claudeDashboard.archiveProject",
           "when": "false"
+        },
+        {
+          "command": "claudeDashboard.installMenubar",
+          "when": "isMac"
         }
       ]
     },

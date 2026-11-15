@@ -8,5 +8,6 @@
   "command.openProject": "Projektfenster öffnen",
   "command.openSession": "Sitzung öffnen",
   "command.archiveProject": "Projekt archivieren",
+  "command.installMenubar": "Menüleisten-App installieren (macOS)",
   "config.showMissingFolders": "Auch Projekte zeigen, deren Ordner nicht mehr existiert (z. B. verschobene oder gelöschte Projekte)."
 }

@@ -28,6 +28,16 @@ done
 lipo -create "$BIN-arm64" "$BIN-x86_64" -output "$BIN"
 rm "$BIN-arm64" "$BIN-x86_64"
 
+# App icon: the app draws it itself, iconutil (part of macOS) packs it.
+ICONSET=$(mktemp -d)/AppIcon.iconset
+mkdir -p "$ICONSET" "$APP/Contents/Resources"
+for SIZE in 16 32 128 256 512; do
+  "$BIN" --write-icon "$ICONSET/icon_${SIZE}x${SIZE}.png" "$SIZE"
+  "$BIN" --write-icon "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" "$((SIZE * 2))"
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$(dirname "$ICONSET")"
+
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -38,6 +48,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
   <key>CFBundleIdentifier</key><string>local.claude-dashboard.menubar</string>
   <key>CFBundleExecutable</key><string>ClaudeDashboard</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>

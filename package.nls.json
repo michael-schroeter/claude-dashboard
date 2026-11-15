@@ -8,5 +8,6 @@
   "command.openProject": "Open Project Window",
   "command.openSession": "Open Session",
   "command.archiveProject": "Archive Project",
+  "command.installMenubar": "Install Menu Bar App (macOS)",
   "config.showMissingFolders": "Also show projects whose folder no longer exists (e.g. moved or deleted projects)."
 }

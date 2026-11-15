@@ -29,6 +29,10 @@ enum Main {
       check(filter: args.count > index + 1 ? args[index + 1] : nil)
       return
     }
+    if let index = args.firstIndex(of: "--write-icon"), args.count > index + 2, let size = Int(args[index + 2]) {
+      writeAppIcon(to: args[index + 1], size: size)
+      return
+    }
     let app = NSApplication.shared
     app.setActivationPolicy(.accessory)
     let delegate = AppDelegate(demo: args.contains("--demo"), showAtLaunch: args.contains("--show"))
@@ -48,10 +52,6 @@ enum Main {
         delegate.settings.toggleTall("-demo-weather-station")
         delegate.settings.toggleTall("-demo-garden-plan")
       }
-      delegate.settings.editing = args.contains("--edit")
-      if args.contains("--pick") { delegate.settings.pickingIcon = "-demo-weather-station" }
-    }
-    self.delegate = delegate
       if args.contains("--gap") {
         let last = delegate.settings.columns - 1
         for (name, col, row) in [
@@ -61,6 +61,10 @@ enum Main {
           delegate.settings.pin("-demo-" + name, at: Settings.Cell(col: col, row: row))
         }
       }
+      delegate.settings.editing = args.contains("--edit")
+      if args.contains("--pick") { delegate.settings.pickingIcon = "-demo-weather-station" }
+    }
+    self.delegate = delegate
     app.delegate = delegate
     app.run()
   }
@@ -102,6 +106,52 @@ func agentIcon(scale: CGFloat = 1) -> NSImage {
   image.isTemplate = true
   image.accessibilityDescription = "Claude Dashboard"
   return image
+}
+
+/// For `--write-icon <file.png> <pixels>` (used by build.sh): the app icon –
+/// the menu bar agent in white on a blue rounded square, laid out on Apple's
+/// icon grid (the square fills 824 of 1024 points, the rest stays clear).
+func writeAppIcon(to file: String, size: Int) {
+  let side = CGFloat(size)
+  guard
+    let rep = NSBitmapImageRep(
+      bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size, bitsPerSample: 8, samplesPerPixel: 4,
+      hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+    let context = NSGraphicsContext(bitmapImageRep: rep)
+  else { return }
+  NSGraphicsContext.saveGraphicsState()
+  NSGraphicsContext.current = context
+  let unit = side / 1024
+  let tile = NSRect(x: 100 * unit, y: 100 * unit, width: 824 * unit, height: 824 * unit)
+  let shape = NSBezierPath(roundedRect: tile, xRadius: 185 * unit, yRadius: 185 * unit)
+  // A soft drop shadow, as on other Mac app icons.
+  NSGraphicsContext.saveGraphicsState()
+  let shadow = NSShadow()
+  shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
+  shadow.shadowOffset = NSSize(width: 0, height: -10 * unit)
+  shadow.shadowBlurRadius = 20 * unit
+  shadow.set()
+  NSColor.black.setFill()
+  shape.fill()
+  NSGraphicsContext.restoreGraphicsState()
+  NSGradient(
+    starting: NSColor(srgbRed: 0.36, green: 0.55, blue: 1.0, alpha: 1),
+    ending: NSColor(srgbRed: 0.20, green: 0.27, blue: 0.80, alpha: 1))?
+    .draw(in: shape, angle: -90)
+  // The agent, white. It is drawn on an 18-point grid; 34 points per grid step
+  // make it about 610 points wide inside the 824-point square.
+  let scale = 34 * unit
+  let agent = agentIcon(scale: scale)
+  let white = NSImage(size: agent.size, flipped: false) { rect in
+    agent.draw(in: rect)
+    NSColor.white.set()
+    rect.fill(using: .sourceIn)
+    return true
+  }
+  let origin = NSPoint(x: (side - agent.size.width) / 2, y: (side - agent.size.height) / 2 - 8 * unit)
+  white.draw(at: origin, from: .zero, operation: .sourceOver, fraction: 1)
+  NSGraphicsContext.restoreGraphicsState()
+  try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: file))
 }
 
 // Blur of what lies behind a window, with a freely chosen strength – the way

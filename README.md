@@ -89,18 +89,27 @@ around 50 MB of memory.
 
 ### Install the app
 
-Needs macOS 13 or newer.
+Needs macOS 13 or newer. The app comes with the VS Code extension, so there is
+nothing else to download:
 
-1. Download `Claude-Dashboard-menubar-<version>.zip` from the
-   [Releases](https://github.com/michael-schroeter/claude-dashboard/releases)
-   page and unzip it.
-2. Move `Claude Dashboard.app` to your Applications folder and open it.
-3. The app is not signed with an Apple developer account, so macOS blocks the
-   first start. Open **System Settings → Privacy & Security**, scroll down and
-   click **Open Anyway**. This is needed only once.
+1. Install the extension (see above).
+2. Open the dashboard. A note offers to install the menu bar app; click
+   **Install**. Or run **"Claude Dashboard: Install Menu Bar App (macOS)"**
+   from the command palette, or from the "…" menu of the "Claude Projects"
+   sidebar view.
+3. The app is copied to your Applications folder and starts. Look for the small
+   agent in the menu bar.
+
+When a newer extension brings a newer app, it offers to update it once.
 
 To remove it, switch off "Start at login" if you used it, quit the app from
-the gear menu and delete it.
+the gear menu and delete it from the Applications folder.
+
+Without VS Code: download `Claude-Dashboard-menubar-<version>.zip` from the
+[Releases](https://github.com/michael-schroeter/claude-dashboard/releases) page,
+unzip it and move the app to Applications. That copy is not signed with an
+Apple developer account, so macOS blocks the first start: open **System
+Settings → Privacy & Security** and click **Open Anyway** (needed only once).
 
 ### Build the app yourself
 
@@ -143,10 +152,12 @@ In VS Code: **Extensions** → "Claude Dashboard" → **Uninstall**.
 No Node or npm required, just Python 3:
 
 ```sh
+sh menubar/build.sh        # the menu bar app, which goes into the package
 python3 tools/package.py
 ```
 
-The package ends up in `dist/`.
+The package ends up in `dist/`. Building the app needs the Swift compiler that
+comes with Xcode.
 
 The pictures on this page are rendered from the pages in `docs/demo` with
 headless Chrome: `sh docs/demo/render.sh`.

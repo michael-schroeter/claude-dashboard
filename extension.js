@@ -10,6 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { scanProjects, isActive } = require('./lib/sessions');
 const i18n = require('./lib/i18n');
+const { MenubarApp } = require('./lib/menubar');
 
 const LANG = i18n.pickLanguage(vscode.env.language);
 const T = i18n.strings(LANG);
@@ -27,6 +28,7 @@ function activate(context) {
   const tree = new ProjectTree(store, prefs);
   const dashboard = new Dashboard(context, store, prefs);
   const opener = new SessionOpener(context);
+  const menubar = new MenubarApp(context, T);
   prefs.onDidChange(() => {
     tree.redraw();
     dashboard.post();
@@ -149,6 +151,7 @@ function activate(context) {
     vscode.commands.registerCommand('claudeDashboard.openSession', (node) =>
       openSession(node && node.project, node && node.session && node.session.id)
     ),
+    vscode.commands.registerCommand('claudeDashboard.installMenubar', () => menubar.install()),
     vscode.window.registerWebviewPanelSerializer(PANEL_TYPE, {
       deserializeWebviewPanel: async (panel) => dashboard.attach(panel),
     })
@@ -156,6 +159,13 @@ function activate(context) {
 
   prefs.start();
   opener.start();
+  // Mention the menu bar app when someone actually looks at the dashboard,
+  // not in every window at startup.
+  context.subscriptions.push(
+    dashboard.onDidChangeVisibility(() => {
+      if (dashboard.visible) setTimeout(() => menubar.greet(), 3000);
+    })
+  );
 }
 
 function deactivate() {}
