@@ -253,6 +253,8 @@ struct MainView: View {
   @State private var loginItem = SMAppService.mainApp.status == .enabled
   /// Folder name of the tile being dragged in edit mode.
   @State private var dragging: String?
+  /// The place the dragged tile would land on.
+  @State private var dropCell: Settings.Cell?
 
   private let t = Strings.current
   private let pad = Settings.padding
@@ -285,6 +287,11 @@ struct MainView: View {
     .frame(maxHeight: .infinity, alignment: .top)
     .background(Backdrop())
     .onPreferenceChange(HeightKey.self) { onHeight($0) }
+    // A drag that ended outside the grid leaves no half-transparent tile behind.
+    .onChange(of: settings.editing) { _ in
+      dragging = nil
+      dropCell = nil
+    }
   }
 
   private var header: some View {
@@ -445,7 +452,7 @@ struct MainView: View {
           t.now, top.working > 0 ? t.nowWorking(top.working) : t.status(.waiting), top.items, rowColumns)
       }
       if store.loaded && (!visible.isEmpty || !settings.editing) {
-        tiles(visible, editing: settings.editing, archived: false, withAdd: !settings.editing)
+        tiles(visible, editing: settings.editing, archived: false, withAdd: !settings.editing, free: true)
       }
       if let dir = settings.pickingIcon, let project = visible.first(where: { $0.dir == dir }) {
         symbolPicker(project)
@@ -495,61 +502,68 @@ struct MainView: View {
     .glass(Layout.card)
   }
 
-  private struct Placed: Identifiable {
-    let project: Project
-    let tall: Bool
-    let column: Int
-    let row: Int
-    var id: String { project.dir }
-  }
-
-  /// Puts every tile into the first free place of the grid. Large tiles take
-  /// two rows, so a small tile may fill a gap further up. `add` is the place
-  /// of the "new project" tile, after all others.
-  private func place(_ projects: [Project], withAdd: Bool) -> (items: [Placed], rows: Int, add: Int?) {
+  /// The tiles on a grid. The main list (`free`) keeps the places the user
+  /// chose, gaps included; in edit mode it shows the empty places and one
+  /// extra row, and a tile can be dropped on any of them.
+  private func tiles(
+    _ projects: [Project], editing: Bool, archived: Bool, withAdd: Bool = false, free: Bool = false
+  ) -> some View {
+    let dirs = projects.map(\.dir)
+    let layout = settings.arrange(dirs, free: free)
     let columns = settings.columns
-    var used = Set<Int>()  // row * columns + column
-    var items: [Placed] = []
-    var rows = 0
-    for project in projects {
-      let tall = settings.tall.contains(project.dir)
-      var cell = 0
-      while used.contains(cell) || (tall && used.contains(cell + columns)) { cell += 1 }
-      used.insert(cell)
-      if tall { used.insert(cell + columns) }
-      items.append(Placed(project: project, tall: tall, column: cell % columns, row: cell / columns))
-      rows = max(rows, cell / columns + (tall ? 2 : 1))
+    let arranging = editing && free
+    // While a tile is dragged, the tiles already stand where they would be
+    // after dropping it, so nothing jumps when it is let go.
+    var cells = layout.cells
+    if arranging, let dragging, let target = dropCell,
+      let preview = settings.cells(moving: dragging, to: target, among: dirs)
+    {
+      cells = preview
     }
-    guard withAdd else { return (items, rows, nil) }
-    var cell = 0
-    while used.contains(cell) { cell += 1 }
-    return (items, max(rows, cell / columns + 1), cell)
-  }
-
-  private func tiles(_ projects: [Project], editing: Bool, archived: Bool, withAdd: Bool = false) -> some View {
-    let shown = projects.map(\.dir)
-    let placed = place(projects, withAdd: withAdd)
-    let columns = settings.columns
+    let used = Set(cells.flatMap { settings.footprint($0.key, at: $0.value) })
+    let usedRows = max(layout.rows, (used.map(\.row).max() ?? -1) + 1)
+    let rows = usedRows + (arranging ? 1 : 0) + (withAdd && layout.add.row >= layout.rows ? 1 : 0)
     let stepX = Settings.tileWidth + Settings.spacing
     let stepY = Layout.tileHeight + Settings.spacing
     return ZStack(alignment: .topLeading) {
-      ForEach(placed.items) { item in
-        tile(item.project, editing: editing, archived: archived, tall: item.tall, shown: shown)
-          .frame(width: Settings.tileWidth)
-          .offset(x: CGFloat(item.column) * stepX, y: CGFloat(item.row) * stepY)
+      if arranging {
+        ForEach(0..<(rows * columns), id: \.self) { i in
+          let cell = Settings.Cell(col: i % columns, row: i / columns)
+          if !used.contains(cell) {
+            Layout.tile
+              .strokeBorder(Color.primary.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+              .frame(width: Settings.tileWidth, height: Layout.tileHeight)
+              .offset(x: CGFloat(cell.col) * stepX, y: CGFloat(cell.row) * stepY)
+          }
+        }
       }
-      if let cell = placed.add {
+      ForEach(projects, id: \.dir) { project in
+        let cell = cells[project.dir] ?? Settings.Cell(col: 0, row: 0)
+        tile(project, editing: editing, archived: archived, tall: settings.tall.contains(project.dir), all: dirs)
+          .frame(width: Settings.tileWidth)
+          .offset(x: CGFloat(cell.col) * stepX, y: CGFloat(cell.row) * stepY)
+      }
+      if withAdd {
         AddTile(title: t.newProject, hint: t.newProjectHint, action: actions.newProject)
           .frame(width: Settings.tileWidth)
-          .offset(x: CGFloat(cell % columns) * stepX, y: CGFloat(cell / columns) * stepY)
+          .offset(x: CGFloat(layout.add.col) * stepX, y: CGFloat(layout.add.row) * stepY)
       }
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
-    .frame(height: max(0, CGFloat(placed.rows) * stepY - Settings.spacing), alignment: .topLeading)
+    .frame(height: max(0, CGFloat(rows) * stepY - Settings.spacing), alignment: .topLeading)
+    .contentShape(Rectangle())
+    .onDrop(
+      of: [UTType.text],
+      delegate: GridDrop(
+        enabled: arranging, columns: columns, stepX: stepX, stepY: stepY,
+        dragging: $dragging, target: $dropCell
+      ) { dir, cell in
+        settings.move(dir, to: cell, among: dirs)
+      })
   }
 
   @ViewBuilder
-  private func tile(_ project: Project, editing: Bool, archived: Bool, tall: Bool, shown: [String]) -> some View {
+  private func tile(_ project: Project, editing: Bool, archived: Bool, tall: Bool, all: [String]) -> some View {
     let color = projectColor(project, store.prefs)
     let symbol = settings.icon(project.dir)
     // A large tile shows the most recent session.
@@ -568,10 +582,10 @@ struct MainView: View {
         name: settings.title(project), symbol: symbol, color: color, archived: false,
         picking: settings.pickingIcon == project.dir, tall: tall,
         previewTitle: previewTitle, preview: preview, t: t,
-        onResize: { settings.toggleTall(project.dir) },
+        onResize: { settings.toggleTall(project.dir, among: all) },
         onSymbol: { settings.pickingIcon = settings.pickingIcon == project.dir ? nil : project.dir },
-        onBack: { settings.shift(project.dir, by: -1, shown: shown) },
-        onForward: { settings.shift(project.dir, by: 1, shown: shown) }
+        onBack: { settings.shift(project.dir, by: -1, among: all) },
+        onForward: { settings.shift(project.dir, by: 1, among: all) }
       ) {
         actions.setArchived(project, true)
       }
@@ -580,11 +594,6 @@ struct MainView: View {
         dragging = project.dir
         return NSItemProvider(object: project.dir as NSString)
       }
-      .onDrop(
-        of: [UTType.text],
-        delegate: TileDrop(target: project.dir, dragging: $dragging) { dir, target in
-          settings.move(dir, onto: target, shown: shown)
-        })
     } else {
       let count = counts(project, store.now)
       ProjectTile(
@@ -605,7 +614,9 @@ struct MainView: View {
       )
       .contextMenu {
         Button(t.openWindow) { actions.openProject(project) }
-        Button(tall ? t.shrink : t.enlarge) { settings.toggleTall(project.dir) }
+        Button(tall ? t.shrink : t.enlarge) {
+          settings.toggleTall(project.dir, among: settings.ordered(store.visibleProjects).map(\.dir))
+        }
         Button(archived ? t.restore : t.archive) { actions.setArchived(project, !archived) }
       }
     }
@@ -813,22 +824,51 @@ private struct Columns<Item: Identifiable, Cell: View>: View {
   }
 }
 
-/// Dragging a tile over another one moves it there right away.
-private struct TileDrop: DropDelegate {
-  let target: String
+/// Dropping a tile on the grid puts it on the place under the pointer,
+/// empty or not (a tile that is there makes room).
+private struct GridDrop: DropDelegate {
+  let enabled: Bool
+  let columns: Int
+  let stepX: CGFloat
+  let stepY: CGFloat
   @Binding var dragging: String?
-  let move: (String, String) -> Void
+  @Binding var target: Settings.Cell?
+  let move: (String, Settings.Cell) -> Void
 
-  func dropEntered(info: DropInfo) {
-    if let dragging, dragging != target { move(dragging, target) }
+  private func cell(_ info: DropInfo) -> Settings.Cell {
+    let col = min(columns - 1, max(0, Int(info.location.x / stepX)))
+    let row = max(0, Int(info.location.y / stepY))
+    return Settings.Cell(col: col, row: row)
   }
+
+  func validateDrop(info: DropInfo) -> Bool { enabled && dragging != nil }
+
+  /// The tiles slide to their new places instead of jumping.
+  static let slide = Animation.spring(response: 0.3, dampingFraction: 0.86)
 
   func dropUpdated(info: DropInfo) -> DropProposal? {
-    DropProposal(operation: .move)
+    let place = cell(info)
+    if target != place { withAnimation(Self.slide) { target = place } }
+    return DropProposal(operation: .move)
   }
 
+  func dropExited(info: DropInfo) {
+    withAnimation(Self.slide) { target = nil }
+  }
+
+  // The tiles already stand at the places shown while dragging; saving them
+  // changes nothing on screen. Only the dragged tile fades back in.
   func performDrop(info: DropInfo) -> Bool {
-    dragging = nil
+    let place = target ?? cell(info)
+    var quiet = Transaction()
+    quiet.disablesAnimations = true
+    withTransaction(quiet) {
+      if let dragging { move(dragging, place) }
+    }
+    withAnimation(.easeOut(duration: 0.18)) {
+      dragging = nil
+      target = nil
+    }
     return true
   }
 }

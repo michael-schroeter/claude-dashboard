@@ -65,7 +65,10 @@ sessions.
   width of the panel, and **Start at login** (off by default).
 - Colors, titles and the archive are shared with the VS Code dashboard. Order,
   symbols, tile sizes and columns belong to the app.
-- Tiles keep their place; a new project is added at the end.
+- Tiles keep their place. In edit mode, drag a tile onto any place, empty or
+  not: gaps stay, and a tile that is in the way swaps places with it. Each
+  number of columns keeps its own layout. A new project is added after the
+  last tile. "Sort by last use" (gear menu) closes the gaps again.
 - The **"+" tile** starts a new project: a folder chooser opens, you choose
   or create a folder, and it opens in VS Code. The project gets its tile once
   a Claude session exists in that folder. The folder in which the chooser

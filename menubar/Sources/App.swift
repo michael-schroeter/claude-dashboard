@@ -9,6 +9,7 @@
 //   --columns <n>    with --demo: number of tile columns
 //   --edit           with --demo: start in edit mode
 //   --tall           with --demo: make two tiles large
+//   --gap            with --demo: place the tiles freely, with gaps
 //   --open           open the panels right away and keep running (real look)
 //   --show           open the panels right away, print where they are, write
 //                    panel-main.png and panel-detail.png into the current
@@ -51,6 +52,15 @@ enum Main {
       if args.contains("--pick") { delegate.settings.pickingIcon = "-demo-weather-station" }
     }
     self.delegate = delegate
+      if args.contains("--gap") {
+        let last = delegate.settings.columns - 1
+        for (name, col, row) in [
+          ("weather-station", 0, 0), ("garden-plan", 1, 0), ("a-project-with-a-rather-long-name", last, 0),
+          ("home-budget", 0, 2), ("recipe-book", last, 3),
+        ] {
+          delegate.settings.pin("-demo-" + name, at: Settings.Cell(col: col, row: row))
+        }
+      }
     app.delegate = delegate
     app.run()
   }
