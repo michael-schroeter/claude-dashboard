@@ -1,5 +1,5 @@
 {
-  "name": "claude-dashboard",
+  "name": "claude-sessions-dashboard",
   "displayName": "Claude Dashboard",
   "description": "%description%",
   "version": "0.5.0",

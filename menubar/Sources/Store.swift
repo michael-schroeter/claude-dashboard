@@ -14,7 +14,7 @@ enum Paths {
   /// version has created its own (it takes the settings over on its first start).
   static var extensionStorage: String {
     let base = home + "/Library/Application Support/Code/User/globalStorage/"
-    let current = base + "michael-schroeter.claude-dashboard"
+    let current = base + "michael-schroeter.claude-sessions-dashboard"
     let legacy = base + "local.claude-dashboard"
     let files = FileManager.default
     return !files.fileExists(atPath: current) && files.fileExists(atPath: legacy) ? legacy : current

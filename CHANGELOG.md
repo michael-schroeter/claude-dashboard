@@ -4,7 +4,7 @@
 
 - **Now on the VS Code Marketplace.** Install it from the Extensions view and
   updates arrive on their own. The extension ID is now
-  `michael-schroeter.claude-dashboard`.
+  `michael-schroeter.claude-sessions-dashboard`.
 - **Coming from a .vsix (0.4 or older)?** The new version notices the older
   copy and offers to remove it. Your colors, titles and archive are taken over.
 - The menu bar app (0.5.0) uses the settings of the new version, and those of

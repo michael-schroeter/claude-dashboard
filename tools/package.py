@@ -36,8 +36,8 @@ CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".plist" ContentType="application/xml"/>
   <Default Extension=".icns" ContentType="image/icns"/>
   <Override PartName="/extension/LICENSE" ContentType="text/plain"/>
-  <Override PartName="/extension/menubar-app/Claude Dashboard.app/Contents/MacOS/ClaudeDashboard" ContentType="application/octet-stream"/>
-  <Override PartName="/extension/menubar-app/Claude Dashboard.app/Contents/_CodeSignature/CodeResources" ContentType="application/xml"/>
+  <Override PartName="/extension/menubar-app/ClaudeDashboard.app/Contents/MacOS/ClaudeDashboard" ContentType="application/octet-stream"/>
+  <Override PartName="/extension/menubar-app/ClaudeDashboard.app/Contents/_CodeSignature/CodeResources" ContentType="application/xml"/>
 </Types>
 """
 
@@ -159,7 +159,8 @@ def app_files(pkg):
     if not version.exists() or f"<string>{pkg['version']}</string>" not in version.read_text("utf-8"):
         raise SystemExit(f"dist/{APP} is missing or not version {pkg['version']}: run sh menubar/build.sh first")
     for path in sorted(p for p in app.rglob("*") if p.is_file()):
-        yield path, "extension/menubar-app/" + path.relative_to(ROOT / "dist").as_posix()
+        # Without the space: the Marketplace rejects part names with spaces.
+        yield path, "extension/menubar-app/ClaudeDashboard.app/" + path.relative_to(app).as_posix()
 
 
 def main():
@@ -167,13 +168,15 @@ def main():
     for key in ("publisher", "icon", "bugs", "homepage", "qna"):
         if not pkg.get(key):
             raise SystemExit(f"package.json needs '{key}' for the Marketplace")
-    out = ROOT / "dist" / f"{pkg['name']}-{pkg['version']}.vsix"
+    out = ROOT / "dist" / f"claude-dashboard-{pkg['version']}.vsix"
     out.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("[Content_Types].xml", CONTENT_TYPES)
         z.writestr("extension.vsixmanifest", manifest(pkg))
         for path in files():
             name = "extension/" + path.relative_to(ROOT).as_posix()
+            if " " in name:
+                raise SystemExit(f"space in package path (the Marketplace rejects it): {name}")
             if path == ROOT / "README.md":
                 z.writestr(name, readme_for_marketplace(pkg))
             else:

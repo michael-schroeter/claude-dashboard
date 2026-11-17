@@ -40,7 +40,7 @@ HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
 
 1. In VS Code open **Extensions** (`Cmd/Ctrl+Shift+X`), search for
    **Claude Dashboard** and click **Install** – or open its
-   [Marketplace page](https://marketplace.visualstudio.com/items?itemName=michael-schroeter.claude-dashboard).
+   [Marketplace page](https://marketplace.visualstudio.com/items?itemName=michael-schroeter.claude-sessions-dashboard).
 2. Reload the other open VS Code windows once
    (`Cmd/Ctrl+Shift+P` → "Developer: Reload Window"), so that every window can
    open its own sessions.
