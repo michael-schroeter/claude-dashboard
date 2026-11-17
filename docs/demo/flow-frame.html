@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!-- The real dashboard (media/dashboard.css + media/dashboard.js) for the
+     animated README demo (flow.html). Like dashboard-frame.html, but the
+     window belongs to recipe-book and one session changes its state:
+       #s=working   "Fix time zone in the export" is still running
+       #s=waiting   it now waits for you
+       &hover=1     the mouse is over its card in "Now"
+       &measure=1   write the card positions into the title (for --dump-dom)
+     An illustration with made-up data, not a screenshot. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Dashboard</title>
+<style>
+  :root {
+    --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --vscode-editor-background: #1f1f1f;
+    --vscode-foreground: #cccccc;
+    --vscode-descriptionForeground: #9d9d9d;
+    --vscode-focusBorder: #0078d4;
+    --vscode-charts-green: #3fb950;
+    --vscode-charts-yellow: #d9a441;
+  }
+</style>
+<link rel="stylesheet" href="../../media/dashboard.css">
+<style>
+  /* No transitions: every frame is rendered from scratch. */
+  * { transition: none !important; }
+  /* Same as .card:hover in dashboard.css – the demo's mouse is only drawn. */
+  .card.demo-hover {
+    border-color: color-mix(in srgb, var(--pc) 60%, transparent);
+    background: color-mix(in srgb, var(--pc) 10%, var(--card));
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="demo-data.js"></script>
+<script>
+  (function () {
+    const params = new URLSearchParams(location.hash.slice(1));
+    const waiting = params.get('s') === 'waiting';
+    const now = Date.now();
+    const min = 60 * 1000;
+    const projects = window.DEMO_PROJECTS;
+    for (const p of projects) p.current = p.name === 'recipe-book';
+    const station = projects[0];
+    const session = station.sessions.find((s) => s.id === 'a2');
+    if (waiting) {
+      session.lastTs = now - 4 * min;
+      session.excerpt = 'Should the export use local time or UTC?';
+    } else {
+      // Two minutes: still "working", and its card keeps its place when it starts waiting.
+      session.lastTs = now - 2 * min;
+      session.excerpt = 'Checking how the export writes the dates …';
+    }
+    station.sessions.sort((a, b) => b.lastTs - a.lastTs);
+    station.lastTs = station.sessions[0].lastTs;
+
+    const TARGET = 'Fix time zone in the export';
+    const target = () =>
+      [...document.querySelectorAll('.now .card')].find(
+        (card) => card.querySelector('.card-title').textContent === TARGET
+      );
+    window.__demoAfterRender = function () {
+      const card = target();
+      if (!card) return;
+      if (params.get('hover')) card.classList.add('demo-hover');
+      if (params.get('measure')) {
+        const r = card.getBoundingClientRect();
+        document.title = JSON.stringify({ x: r.left, y: r.top, w: r.width, h: r.height,
+          vw: innerWidth, vh: innerHeight });
+      }
+    };
+  })();
+
+  window.acquireVsCodeApi = function () {
+    return {
+      getState: function () { return {}; },
+      setState: function () {},
+      postMessage: function (message) {
+        if (message.type !== 'ready') return;
+        setTimeout(function () {
+          window.postMessage({ type: 'data', lang: 'en', projects: window.DEMO_PROJECTS }, '*');
+          setTimeout(window.__demoAfterRender, 0);
+        }, 0);
+      },
+    };
+  };
+</script>
+<script src="../../media/dashboard.js"></script>
+</body>
+</html>

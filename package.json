@@ -2,18 +2,28 @@
   "name": "claude-dashboard",
   "displayName": "Claude Dashboard",
   "description": "%description%",
-  "version": "0.4.0",
-  "publisher": "local",
-  "private": true,
+  "version": "0.5.0",
+  "publisher": "michael-schroeter",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/michael-schroeter/claude-dashboard"
   },
+  "bugs": {
+    "url": "https://github.com/michael-schroeter/claude-dashboard/issues"
+  },
+  "homepage": "https://github.com/michael-schroeter/claude-dashboard#readme",
+  "qna": "https://github.com/michael-schroeter/claude-dashboard/issues",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1a2350",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.94.0"
   },
   "categories": [
+    "AI",
     "Other"
   ],
   "main": "./extension.js",
@@ -143,8 +153,13 @@
   "keywords": [
     "claude",
     "claude code",
+    "anthropic",
     "sessions",
     "dashboard",
-    "ai"
+    "multiple windows",
+    "agents",
+    "ai",
+    "menu bar",
+    "macos"
   ]
 }

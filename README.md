@@ -1,12 +1,16 @@
 # Claude Dashboard
 
-A VS Code extension that shows all your **Claude Code** sessions from every
-project in one place. No more hunting through a dozen VS Code windows: click a
-session and the right project window comes to the front with that session open.
+Running **Claude Code** in several VS Code windows at once? Claude Dashboard
+shows every session from every project in one place – which ones are working,
+which are waiting for you – and one click brings the right window to the front
+with that session open. No more hunting through a dozen windows.
+
+Made for people who use the Claude Code extension in VS Code with one window
+per project. Optional menu bar app for macOS.
 
 > Unofficial community project – not affiliated with or endorsed by Anthropic.
 
-![The dashboard in a VS Code window, with the menu bar app open on top](docs/menubar.jpg)
+![A session in another window starts waiting; one click on its card in the dashboard brings that window to the front with the session open](docs/demo.gif)
 
 *The pictures on this page are illustrations with made-up projects, rebuilt in
 HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
@@ -34,21 +38,31 @@ HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
 
 ## Install
 
-1. Download `claude-dashboard-<version>.vsix` from the
-   [Releases](https://github.com/michael-schroeter/claude-dashboard/releases) page.
-2. In VS Code open **Extensions** → **"…"** (top right) →
-   **"Install from VSIX…"** and pick the file.
-3. Reload every open VS Code window once
-   (`Cmd/Ctrl+Shift+P` → "Developer: Reload Window").
-4. Click **"Claude Dashboard"** in the status bar (bottom left).
+1. In VS Code open **Extensions** (`Cmd/Ctrl+Shift+X`), search for
+   **Claude Dashboard** and click **Install** – or open its
+   [Marketplace page](https://marketplace.visualstudio.com/items?itemName=michael-schroeter.claude-dashboard).
+2. Reload the other open VS Code windows once
+   (`Cmd/Ctrl+Shift+P` → "Developer: Reload Window"), so that every window can
+   open its own sessions.
+3. Click **"Claude Dashboard"** in the status bar (bottom left).
 
-Updates are not automatic: to update, install the newer `.vsix` the same way.
+Updates arrive automatically.
+
+**Coming from a `.vsix` (version 0.4 or older)?** Install it from the
+Marketplace as above. The new version notices the older copy and offers to
+remove it; your colors, titles and archive are taken over.
+
+Without the Marketplace: download `claude-dashboard-<version>.vsix` from the
+[Releases](https://github.com/michael-schroeter/claude-dashboard/releases) page
+and choose **Extensions** → **"…"** → **"Install from VSIX…"**.
 
 ## Menu bar app (macOS, optional)
 
 A small companion app puts the same overview into the macOS menu bar, in the
 style of Control Center. The number next to the icon is the count of working
 sessions.
+
+![The dashboard in a VS Code window, with the menu bar app open on top](docs/menubar.jpg)
 
 - **Now:** sessions that are working or waiting for you, across all projects.
 - **Project tiles** show how many sessions are working or waiting. Click a
@@ -160,7 +174,12 @@ The package ends up in `dist/`. Building the app needs the Swift compiler that
 comes with Xcode.
 
 The pictures on this page are rendered from the pages in `docs/demo` with
-headless Chrome: `sh docs/demo/render.sh`.
+headless Chrome: `sh docs/demo/render.sh` for the still pictures and
+`sh docs/demo/render-gif.sh` for the animation (needs Chrome and swiftc).
+
+To publish a new version: build the package as above and upload
+`dist/claude-dashboard-<version>.vsix` on the publisher's
+[Marketplace management page](https://marketplace.visualstudio.com/manage).
 
 ## License
 

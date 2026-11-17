@@ -21,8 +21,17 @@ const CLAUDE_OPEN_COMMAND = 'claude-vscode.primaryEditor.open';
 const PANEL_TYPE = 'claudeDashboard.panel';
 const REQUEST_MAX_AGE_MS = 60 * 1000;
 const TREE_SESSION_LIMIT = 25;
+// Before 0.5 the extension was installed from a .vsix under this ID.
+const LEGACY_ID = 'local.claude-dashboard';
 
 function activate(context) {
+  // Both copies would register the same commands and views, so this one stays
+  // idle until the older copy is gone.
+  if (context.extension.id !== LEGACY_ID && vscode.extensions.getExtension(LEGACY_ID)) {
+    offerLegacyRemoval();
+    return;
+  }
+
   const prefs = new Prefs(context);
   const store = new Store();
   const tree = new ProjectTree(store, prefs);
@@ -170,6 +179,21 @@ function activate(context) {
 
 function deactivate() {}
 
+async function offerLegacyRemoval() {
+  // Ask only in the window the person is looking at, not in every open window.
+  if (!vscode.window.state.focused) return;
+  const choice = await vscode.window.showInformationMessage(T.legacyCopy, T.legacyRemove);
+  if (!choice) return;
+  try {
+    await vscode.commands.executeCommand('workbench.extensions.uninstallExtension', LEGACY_ID);
+  } catch (error) {
+    vscode.window.showErrorMessage(T.legacyFailed(error && error.message ? error.message : String(error)));
+    return;
+  }
+  const reload = await vscode.window.showInformationMessage(T.legacyRemoved, T.legacyReload);
+  if (reload) vscode.commands.executeCommand('workbench.action.reloadWindow');
+}
+
 function ownsFolder(folder) {
   return (vscode.workspace.workspaceFolders || []).some((f) => f.uri.fsPath === folder);
 }
@@ -193,6 +217,7 @@ class Prefs {
   }
 
   start() {
+    this.adoptLegacy();
     this.load();
     try {
       fs.mkdirSync(this.dir, { recursive: true });
@@ -207,6 +232,19 @@ class Prefs {
 
   dispose() {
     if (this.watcher) this.watcher.close();
+  }
+
+  // Copies installed from a .vsix before 0.5 kept their settings in the folder
+  // of the old ID (next to this one). Take them over once.
+  adoptLegacy() {
+    const legacy = path.join(path.dirname(this.dir), LEGACY_ID, 'prefs.json');
+    if (legacy === this.file || fs.existsSync(this.file) || !fs.existsSync(legacy)) return;
+    try {
+      fs.mkdirSync(this.dir, { recursive: true });
+      fs.copyFileSync(legacy, this.file, fs.constants.COPYFILE_EXCL);
+    } catch {
+      // Then the dashboard starts with the default colors.
+    }
   }
 
   load() {

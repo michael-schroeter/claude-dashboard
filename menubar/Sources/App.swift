@@ -33,6 +33,12 @@ enum Main {
       writeAppIcon(to: args[index + 1], size: size)
       return
     }
+    if let index = args.firstIndex(of: "--write-store-icon"), args.count > index + 2,
+      let size = Int(args[index + 2])
+    {
+      writeAppIcon(to: args[index + 1], size: size, fullBleed: true)
+      return
+    }
     let app = NSApplication.shared
     app.setActivationPolicy(.accessory)
     let delegate = AppDelegate(demo: args.contains("--demo"), showAtLaunch: args.contains("--show"))
@@ -111,7 +117,9 @@ func agentIcon(scale: CGFloat = 1) -> NSImage {
 /// For `--write-icon <file.png> <pixels>` (used by build.sh): the app icon –
 /// the menu bar agent in white on a blue rounded square, laid out on Apple's
 /// icon grid (the square fills 824 of 1024 points, the rest stays clear).
-func writeAppIcon(to file: String, size: Int) {
+/// `--write-store-icon` draws the same square filling the whole image, without
+/// the shadow – the extension's icon in the VS Code Marketplace (media/icon.png).
+func writeAppIcon(to file: String, size: Int, fullBleed: Bool = false) {
   let side = CGFloat(size)
   guard
     let rep = NSBitmapImageRep(
@@ -121,19 +129,24 @@ func writeAppIcon(to file: String, size: Int) {
   else { return }
   NSGraphicsContext.saveGraphicsState()
   NSGraphicsContext.current = context
-  let unit = side / 1024
-  let tile = NSRect(x: 100 * unit, y: 100 * unit, width: 824 * unit, height: 824 * unit)
+  // Everything below is measured on the 824-point square of the app icon.
+  let tileSide: CGFloat = fullBleed ? 1024 : 824
+  let unit = side / 1024 * tileSide / 824
+  let inset = (side - 824 * unit) / 2
+  let tile = NSRect(x: inset, y: inset, width: 824 * unit, height: 824 * unit)
   let shape = NSBezierPath(roundedRect: tile, xRadius: 185 * unit, yRadius: 185 * unit)
-  // A soft drop shadow, as on other Mac app icons.
-  NSGraphicsContext.saveGraphicsState()
-  let shadow = NSShadow()
-  shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
-  shadow.shadowOffset = NSSize(width: 0, height: -10 * unit)
-  shadow.shadowBlurRadius = 20 * unit
-  shadow.set()
-  NSColor.black.setFill()
-  shape.fill()
-  NSGraphicsContext.restoreGraphicsState()
+  if !fullBleed {
+    // A soft drop shadow, as on other Mac app icons.
+    NSGraphicsContext.saveGraphicsState()
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
+    shadow.shadowOffset = NSSize(width: 0, height: -10 * unit)
+    shadow.shadowBlurRadius = 20 * unit
+    shadow.set()
+    NSColor.black.setFill()
+    shape.fill()
+    NSGraphicsContext.restoreGraphicsState()
+  }
   NSGradient(
     starting: NSColor(srgbRed: 0.36, green: 0.55, blue: 1.0, alpha: 1),
     ending: NSColor(srgbRed: 0.20, green: 0.27, blue: 0.80, alpha: 1))?
