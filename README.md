@@ -24,6 +24,12 @@ HTML (see `docs/demo`). The dashboard in them is the extension's real code.*
 - **Status:** working · waiting for you · done (estimated from the session files).
 - **Organize:** give each project one of 24 colors (click its color dot), archive
   projects you don't need right now and restore them later.
+- **Colored windows (optional):** project windows get their color in the title
+  bar, activity bar and status bar, and a dark tint of it in the editor, side
+  bars, tabs and terminal – also windows you open later. Per project
+  with "Color the VS Code window too" in the color picker; for all projects at
+  once in the gear menu of the menu bar app or the "…" menu of the Projects
+  view, where you also pick "Frame only" or "Whole window".
 - **Sidebar view "Claude Projects"** listing all projects and sessions.
 - Follows your VS Code theme, light and dark. English and German UI (follows
   the VS Code display language).
@@ -145,6 +151,11 @@ The extension reads Claude Code's session files (`~/.claude/projects`)
 **locally only**. It has no network access, sends nothing anywhere and loads no
 third-party scripts. Colors and the archive are stored locally in the
 extension's own storage folder.
+Only if you turn on colored windows does it write into your project folders:
+the setting `workbench.colorCustomizations` in `.vscode/settings.json` (VS Code
+offers no other way to color a single window). Other settings in that file are
+kept. In a Git project the file shows up as a change; add `.vscode/` to
+`.gitignore` if you don't want to commit it.
 The menu bar app follows the same rules: local files only, no network access.
 
 ## Good to know
@@ -160,6 +171,11 @@ The menu bar app follows the same rules: local files only, no network access.
 ## Uninstall
 
 In VS Code: **Extensions** → "Claude Dashboard" → **Uninstall**.
+
+If you used colored windows, turn them off for all projects first ("…" menu of
+the Projects view): each project window that is open then loses
+its colors. Projects that weren't open keep theirs in `.vscode/settings.json`
+until you delete the `workbench.colorCustomizations` entry there.
 
 ## Build it yourself
 

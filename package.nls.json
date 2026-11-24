@@ -9,5 +9,8 @@
   "command.openSession": "Open Session",
   "command.archiveProject": "Archive Project",
   "command.installMenubar": "Install Menu Bar App (macOS)",
-  "config.showMissingFolders": "Also show projects whose folder no longer exists (e.g. moved or deleted projects)."
+  "config.showMissingFolders": "Also show projects whose folder no longer exists (e.g. moved or deleted projects).",
+  "command.colorWindowsAllOn": "Color VS Code Windows of All Projects",
+  "command.colorWindowsAllOff": "Stop Coloring VS Code Windows of All Projects",
+  "command.colorWindowsStyle": "Window Color: Frame Only or Whole Window…"
 }

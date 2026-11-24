@@ -2,7 +2,7 @@
   "name": "claude-sessions-dashboard",
   "displayName": "Claude Dashboard",
   "description": "%description%",
-  "version": "0.5.0",
+  "version": "0.6.3",
   "publisher": "michael-schroeter",
   "license": "MIT",
   "repository": {
@@ -88,6 +88,21 @@
         "command": "claudeDashboard.installMenubar",
         "title": "%command.installMenubar%",
         "category": "Claude Dashboard"
+      },
+      {
+        "command": "claudeDashboard.colorWindowsAllOn",
+        "title": "%command.colorWindowsAllOn%",
+        "category": "Claude Dashboard"
+      },
+      {
+        "command": "claudeDashboard.colorWindowsAllOff",
+        "title": "%command.colorWindowsAllOff%",
+        "category": "Claude Dashboard"
+      },
+      {
+        "command": "claudeDashboard.colorWindowsStyle",
+        "title": "%command.colorWindowsStyle%",
+        "category": "Claude Dashboard"
       }
     ],
     "menus": {
@@ -106,6 +121,21 @@
           "command": "claudeDashboard.installMenubar",
           "when": "view == claudeDashboard.projects && isMac",
           "group": "more@1"
+        },
+        {
+          "command": "claudeDashboard.colorWindowsAllOn",
+          "when": "view == claudeDashboard.projects",
+          "group": "windows@1"
+        },
+        {
+          "command": "claudeDashboard.colorWindowsAllOff",
+          "when": "view == claudeDashboard.projects",
+          "group": "windows@2"
+        },
+        {
+          "command": "claudeDashboard.colorWindowsStyle",
+          "when": "view == claudeDashboard.projects",
+          "group": "windows@3"
         }
       ],
       "view/item/context": [

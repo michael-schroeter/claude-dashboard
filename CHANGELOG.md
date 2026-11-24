@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.3 – 2026-11-23
+
+- **Colored windows (optional):** each project window can take on its
+  dashboard color: title bar, activity bar and status bar in the full color,
+  editor, side bars, tabs and terminal in a dark tint of it. Per project: tick
+  "Color the VS Code window too" in the color picker (dashboard, or the menu
+  bar app's edit mode). All projects at once: gear menu of the menu bar app,
+  or the "…" menu of the Projects view in VS Code. There you also choose
+  "Frame only" or "Whole window" (the default). A color changed in either
+  place shows up in open windows right away. VS Code stores the colors in the
+  project's `.vscode/settings.json`, so they are there again when the project
+  opens; turning the option off removes them.
+
 ## 0.5.0 – 2026-11-17
 
 - **Now on the VS Code Marketplace.** Install it from the Extensions view and

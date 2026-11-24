@@ -267,6 +267,32 @@ h2 {
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--pc);
 }
 
+.picker-option {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.picker-option:hover {
+  color: var(--fg);
+}
+
+.picker-option input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--pc);
+  cursor: pointer;
+}
+
 .pill {
   flex: none;
   padding: 0 8px;

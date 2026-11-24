@@ -351,6 +351,21 @@ struct MainView: View {
         Button(t.resetOrder) { settings.resetOrder(store.projects.map(\.dir)) }
         Button(t.defaultFolder(shortPath(settings.projectsFolder))) { actions.chooseProjectsFolder() }
         Divider()
+        Menu(t.colorWindowsMenu) {
+          Button(t.colorWindowsAllOn) { store.setColorWindowsAll(true) }
+          Button(t.colorWindowsAllOff) { store.setColorWindowsAll(false) }
+          Divider()
+          // Frame only or the whole window (backgrounds in a dark tint), for all projects.
+          Picker(
+            t.colorWindowsStyle,
+            selection: Binding(get: { store.prefs.colorWindowsFull }, set: { store.setColorWindowsFull($0) })
+          ) {
+            Text(t.styleFrame).tag(false)
+            Text(t.styleFull).tag(true)
+          }
+          .pickerStyle(.inline)
+        }
+        Divider()
         Toggle(t.loginItem, isOn: loginBinding)
         Divider()
         Button(t.quit) { actions.quit() }
@@ -659,6 +674,18 @@ struct MainView: View {
           .buttonStyle(.plain)
         }
       }
+      // Right below the colors: this project's VS Code window takes on the
+      // color too. All projects at once: gear menu.
+      Toggle(
+        isOn: Binding(
+          get: { store.prefs.colorWindow(project.dir) },
+          set: { store.setColorWindow(project.dir, $0) })
+      ) {
+        Text(t.colorWindow).font(.system(size: 12))
+      }
+      .toggleStyle(.checkbox)
+      .help(t.colorWindowHelp)
+      .padding(.horizontal, 4)
       Divider().opacity(0.4)
       // Many symbols: they scroll inside the card instead of stretching the panel.
       ScrollView {

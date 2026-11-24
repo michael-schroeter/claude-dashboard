@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const { scanProjects, isActive } = require('./lib/sessions');
 const i18n = require('./lib/i18n');
 const { MenubarApp } = require('./lib/menubar');
+const { WindowColor } = require('./lib/windowcolor');
 
 const LANG = i18n.pickLanguage(vscode.env.language);
 const T = i18n.strings(LANG);
@@ -38,10 +39,14 @@ function activate(context) {
   const dashboard = new Dashboard(context, store, prefs);
   const opener = new SessionOpener(context);
   const menubar = new MenubarApp(context, T);
+  const windowColor = new WindowColor({ root: ROOT, store, prefs });
   prefs.onDidChange(() => {
     tree.redraw();
     dashboard.post();
+    windowColor.update();
   });
+  // Once the sessions are read, the project is also found by its exact path.
+  store.onDidChange(() => windowColor.update());
 
   const view = vscode.window.createTreeView('claudeDashboard.projects', {
     treeDataProvider: tree,
@@ -72,6 +77,7 @@ function activate(context) {
     watcher = fs.watch(ROOT, { recursive: true }, (_event, file) => {
       // Only <project>/<session>.jsonl, not the subfolders (subagents, tool results).
       if (!file || !file.endsWith('.jsonl') || file.split(path.sep).length !== 2) return;
+      windowColor.noticeSessionFolder(file.split(path.sep)[0]);
       refreshSoon();
     });
     watcher.on('error', () => {});
@@ -135,6 +141,7 @@ function activate(context) {
     else if (message.type === 'openSession') openSession(findProject(message.dir), message.id);
     else if (message.type === 'setColor') prefs.setColor(message.dir, message.color);
     else if (message.type === 'setArchived') prefs.setArchived(message.dir, !!message.value);
+    else if (message.type === 'setColorWindow') prefs.setColorWindowFor(message.dir, message.value === true);
   };
 
   context.subscriptions.push(
@@ -147,8 +154,11 @@ function activate(context) {
     view.onDidChangeVisibility(catchUp),
     dashboard.onDidChangeVisibility(catchUp),
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('claudeDashboard')) store.refresh();
+      if (event.affectsConfiguration('claudeDashboard.showMissingFolders')) store.refresh();
     }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => windowColor.update()),
+    // Light and dark themes get different background tints.
+    vscode.window.onDidChangeActiveColorTheme(() => windowColor.update()),
     vscode.commands.registerCommand('claudeDashboard.open', () => dashboard.show()),
     vscode.commands.registerCommand('claudeDashboard.refresh', () => store.refresh()),
     vscode.commands.registerCommand('claudeDashboard.openProject', (node) =>
@@ -161,6 +171,17 @@ function activate(context) {
       openSession(node && node.project, node && node.session && node.session.id)
     ),
     vscode.commands.registerCommand('claudeDashboard.installMenubar', () => menubar.install()),
+    vscode.commands.registerCommand('claudeDashboard.colorWindowsAllOn', () => prefs.setColorWindowsAll(true)),
+    vscode.commands.registerCommand('claudeDashboard.colorWindowsAllOff', () => prefs.setColorWindowsAll(false)),
+    vscode.commands.registerCommand('claudeDashboard.colorWindowsStyle', async () => {
+      const current = prefs.colorWindowsStyle;
+      const items = [
+        { value: 'frame', label: T.styleFrame, description: T.styleFrameHint },
+        { value: 'full', label: T.styleFull, description: T.styleFullHint },
+      ].map((item) => ({ ...item, label: (item.value === current ? '$(check) ' : '') + item.label }));
+      const choice = await vscode.window.showQuickPick(items, { placeHolder: T.stylePrompt });
+      if (choice) prefs.setColorWindowsStyle(choice.value);
+    }),
     vscode.window.registerWebviewPanelSerializer(PANEL_TYPE, {
       deserializeWebviewPanel: async (panel) => dashboard.attach(panel),
     })
@@ -168,6 +189,7 @@ function activate(context) {
 
   prefs.start();
   opener.start();
+  windowColor.update();
   // Mention the menu bar app when someone actually looks at the dashboard,
   // not in every window at startup.
   context.subscriptions.push(
@@ -199,7 +221,7 @@ function ownsFolder(folder) {
 }
 
 // ---------------------------------------------------------------------------
-// User preferences (colors, archive)
+// User preferences (colors, archive, colored windows)
 //
 // Stored as a small file in the extension's global storage so that every
 // VS Code window sees the same state. Keyed by the project's folder name
@@ -209,7 +231,7 @@ class Prefs {
   constructor(context) {
     this.dir = context.globalStorageUri.fsPath;
     this.file = path.join(this.dir, 'prefs.json');
-    this.data = { colors: {}, archived: [], names: {} };
+    this.data = { colors: {}, archived: [], names: {}, colorWindowsByProject: {} };
     this.raw = '';
     this.watcher = null;
     this.emitter = new vscode.EventEmitter();
@@ -264,6 +286,7 @@ class Prefs {
         colors: object(parsed && parsed.colors),
         archived: parsed && Array.isArray(parsed.archived) ? parsed.archived : [],
         names: object(parsed && parsed.names),
+        colorWindowsByProject: object(parsed && parsed.colorWindowsByProject),
       };
       this.raw = raw;
       this.emitter.fire();
@@ -301,6 +324,53 @@ class Prefs {
   setColor(dir, color) {
     if (typeof dir !== 'string' || !Number.isInteger(color) || color < 0 || color > 31) return;
     this.data.colors[dir] = color;
+    this.save();
+  }
+
+  // Project windows in their color (lib/windowcolor.js). Each project has its
+  // own switch (color picker). "All on" / "all off" (gear menu of the menu bar
+  // app, commands here) set every project at once and become the default for
+  // projects that come later. The menu bar app reads and writes the same values.
+  get colorWindows() {
+    return this.data.colorWindows === true;
+  }
+
+  setColorWindowsAll(value) {
+    this.data.colorWindows = !!value;
+    this.data.colorWindowsByProject = {};
+    this.save();
+  }
+
+  // How much of a window gets colored, for all projects: 'frame' (title bar,
+  // activity bar, status bar) or 'full' (the backgrounds too, the default).
+  get colorWindowsStyle() {
+    return this.data.colorWindowsStyle === 'frame' ? 'frame' : 'full';
+  }
+
+  setColorWindowsStyle(value) {
+    if (value !== 'frame' && value !== 'full') return;
+    this.data.colorWindowsStyle = value;
+    this.save();
+  }
+
+  // true/false if this project has its own choice, otherwise null.
+  colorWindowOwn(dir) {
+    const own = this.data.colorWindowsByProject[dir];
+    return typeof own === 'boolean' ? own : null;
+  }
+
+  colorWindowFor(dir) {
+    const own = this.colorWindowOwn(dir);
+    return own === null ? this.colorWindows : own;
+  }
+
+  // Only choices that differ from the default are stored.
+  setColorWindowFor(dir, value) {
+    if (typeof dir !== 'string') return;
+    const map = { ...this.data.colorWindowsByProject };
+    if (!!value === this.colorWindows) delete map[dir];
+    else map[dir] = !!value;
+    this.data.colorWindowsByProject = map;
     this.save();
   }
 
@@ -487,6 +557,7 @@ class Dashboard {
         path: p.path && p.path.startsWith(home) ? '~' + p.path.slice(home.length) : p.path,
         missing: p.missing,
         color: this.prefs.color(p.dir),
+        colorWindow: this.prefs.colorWindowFor(p.dir),
         archived: this.prefs.isArchived(p.dir),
         current: !!p.path && ownsFolder(p.path),
         lastTs: p.lastTs,
@@ -504,6 +575,7 @@ class Dashboard {
   html(webview) {
     const nonce = crypto.randomBytes(16).toString('base64');
     const css = webview.asWebviewUri(vscode.Uri.joinPath(this.mediaRoot, 'dashboard.css'));
+    const palette = webview.asWebviewUri(vscode.Uri.joinPath(this.mediaRoot, 'palette.js'));
     const js = webview.asWebviewUri(vscode.Uri.joinPath(this.mediaRoot, 'dashboard.js'));
     // Strict Content Security Policy: only our own local files, no network.
     const csp = [
@@ -522,6 +594,7 @@ class Dashboard {
 </head>
 <body>
 <div id="app"></div>
+<script nonce="${nonce}" src="${palette}"></script>
 <script nonce="${nonce}" src="${js}"></script>
 </body>
 </html>`;

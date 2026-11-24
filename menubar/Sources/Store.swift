@@ -45,10 +45,20 @@ func status(_ session: Session, _ now: Double) -> Status {
   return now - session.lastTs < workingMs ? .working : .waiting
 }
 
-// Colors and archive are set in the VS Code dashboard; the app only reads them.
+// Colors, archive and colored windows: shared with the VS Code extension
+// through its prefs.json. Both sides read and write them.
 struct Prefs: Equatable {
   var colors: [String: Int] = [:]
   var archived: Set<String> = []
+  /// VS Code colors project windows in their color (the extension does it).
+  /// Each project has its own switch; only those that differ from the last
+  /// "all on" / "all off" are stored.
+  var colorWindows = false
+  var colorWindowsByProject: [String: Bool] = [:]
+  /// For all projects: the whole window (backgrounds too) or only the frame.
+  var colorWindowsFull = true
+
+  func colorWindow(_ dir: String) -> Bool { colorWindowsByProject[dir] ?? colorWindows }
 
   static func load() -> Prefs {
     var prefs = Prefs()
@@ -61,6 +71,13 @@ struct Prefs: Equatable {
       }
     }
     if let archived = json["archived"] as? [String] { prefs.archived = Set(archived) }
+    prefs.colorWindows = json["colorWindows"] as? Bool ?? false
+    if let own = json["colorWindowsByProject"] as? [String: Any] {
+      for (dir, value) in own {
+        if let on = value as? Bool { prefs.colorWindowsByProject[dir] = on }
+      }
+    }
+    prefs.colorWindowsFull = (json["colorWindowsStyle"] as? String) != "frame"
     return prefs
   }
 
@@ -104,9 +121,24 @@ struct Prefs: Equatable {
       json["colors"] = colors
     }
   }
+
+  static func saveColorWindowsAll(_ value: Bool) {
+    update { json in
+      json["colorWindows"] = value
+      json["colorWindowsByProject"] = [String: Bool]()
+    }
+  }
+
+  static func saveColorWindowsFull(_ full: Bool) {
+    update { json in json["colorWindowsStyle"] = full ? "full" : "frame" }
+  }
+
+  static func saveColorWindowsByProject(_ own: [String: Bool]) {
+    update { json in json["colorWindowsByProject"] = own }
+  }
 }
 
-// Same palette and fallback hash as media/dashboard.js, so colors match. Keep
+// Same palette and fallback hash as media/palette.js, so colors match. Keep
 // both in sync, and only ever add colors at the end: a project's color is
 // stored as its position in this list.
 let palette: [Color] = [
@@ -174,6 +206,34 @@ final class Store: ObservableObject {
     prefs.colors[dir] = index
     latestPrefs = prefs
     if !demo { Prefs.saveColor(dir, index) }
+  }
+
+  /// All projects at once (gear menu); also applies to projects that come later.
+  /// Open VS Code windows follow right away.
+  func setColorWindowsAll(_ value: Bool) {
+    prefs.colorWindows = value
+    prefs.colorWindowsByProject = [:]
+    latestPrefs = prefs
+    if !demo { Prefs.saveColorWindowsAll(value) }
+  }
+
+  /// Whole window or frame only, for all projects (gear menu).
+  func setColorWindowsFull(_ full: Bool) {
+    prefs.colorWindowsFull = full
+    latestPrefs = prefs
+    if !demo { Prefs.saveColorWindowsFull(full) }
+  }
+
+  /// One project (color picker). Same rule as in the extension: a choice equal
+  /// to the last "all on" / "all off" is not stored separately.
+  func setColorWindow(_ dir: String, _ value: Bool) {
+    if value == prefs.colorWindows {
+      prefs.colorWindowsByProject.removeValue(forKey: dir)
+    } else {
+      prefs.colorWindowsByProject[dir] = value
+    }
+    latestPrefs = prefs
+    if !demo { Prefs.saveColorWindowsByProject(prefs.colorWindowsByProject) }
   }
 
   var visibleProjects: [Project] { projects.filter { !prefs.archived.contains($0.dir) } }

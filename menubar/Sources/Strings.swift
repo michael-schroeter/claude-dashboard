@@ -23,6 +23,18 @@ struct Strings {
   var moveForward: String { pick("Move forward", "Nach hinten") }
   var columns: String { pick("Columns", "Spalten") }
   var chooseSymbol: String { pick("Change title, symbol and color", "Titel, Symbol und Farbe ändern") }
+  var colorWindow: String { pick("Color the VS Code window too", "VS-Code-Fenster auch einfärben") }
+  var colorWindowHelp: String {
+    pick(
+      "Title bar, activity bar and status bar of this project's VS Code window in its color. VS Code keeps it in the project's .vscode/settings.json, so the color is back when the project opens. For all projects at once: gear menu.",
+      "Titelleiste, Aktivitätsleiste und Statusleiste des VS-Code-Fensters dieses Projekts in seiner Farbe. VS Code speichert das in .vscode/settings.json des Projekts, darum ist die Farbe beim Öffnen gleich wieder da. Für alle Projekte auf einmal: Zahnrad-Menü.")
+  }
+  var colorWindowsMenu: String { pick("Color VS Code windows", "VS-Code-Fenster einfärben") }
+  var colorWindowsAllOn: String { pick("Turn on for all projects", "Bei allen Projekten einschalten") }
+  var colorWindowsAllOff: String { pick("Turn off for all projects", "Bei allen Projekten ausschalten") }
+  var colorWindowsStyle: String { pick("How much", "Wie viel") }
+  var styleFrame: String { pick("Frame only", "Nur Rahmen") }
+  var styleFull: String { pick("Whole window", "Ganzes Fenster") }
   var newProject: String { pick("New project", "Neues Projekt") }
   var newProjectHint: String { pick("Choose a folder", "Ordner wählen") }
   var newProjectMessage: String {

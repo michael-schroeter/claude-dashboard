@@ -14,19 +14,9 @@
   const CARD_MIN = 232; // must match .grid in dashboard.css
   const CARD_GAP = 8;
 
-  // Muted tones that work in both light and dark themes. The menu bar app uses
-  // the same list (menubar/Sources/Store.swift) – keep both in sync, and only
-  // ever add colors at the end: a project's color is stored as its position.
-  const PALETTE = [
-    '#d97757', '#d9a441', '#7fb069', '#45a89f',
-    '#4f9be0', '#8a7fe0', '#cf6fae', '#8b95a1',
-    '#d65c5c', '#e08a3c', '#b5c24a', '#5fb878',
-    '#4cb38a', '#3aa3c4', '#6c78e0', '#a56fe0',
-    '#c964d6', '#e0668f', '#b5836a', '#9a8f7a',
-    '#6f8f8a', '#5f6b7a', '#a9b0ba', '#b89f5a',
-  ];
-  // Projects without a chosen color get one of the first eight, by name.
-  const DEFAULT_COLORS = 8;
+  // Project colors live in media/palette.js (loaded before this file), shared
+  // with the extension, which colors the project windows to match.
+  const { PALETTE, projectColor } = window.ClaudePalette;
 
   // --- Translations (English default, German when VS Code runs in German)
 
@@ -48,6 +38,11 @@
       untitled: 'Untitled',
       changeColor: 'Change color',
       chooseColor: 'Choose color',
+      colorWindow: 'Color the VS Code window too',
+      colorWindowHint:
+        'Title bar, activity bar and status bar of this project’s VS Code window in its color. ' +
+        'Stored in the project’s .vscode/settings.json, so the color is back when the project opens. ' +
+        'For all projects at once: gear menu of the menu bar app, or the “…” menu of the Projects view.',
       thisWindow: 'this window',
       folderMissing: 'folder missing',
       all: (n) => 'All ' + n,
@@ -86,6 +81,11 @@
       untitled: 'Ohne Titel',
       changeColor: 'Farbe ändern',
       chooseColor: 'Farbe wählen',
+      colorWindow: 'VS-Code-Fenster auch einfärben',
+      colorWindowHint:
+        'Titelleiste, Aktivitätsleiste und Statusleiste des VS-Code-Fensters dieses Projekts in seiner Farbe. ' +
+        'Steht in .vscode/settings.json des Projekts, darum ist die Farbe beim Öffnen gleich wieder da. ' +
+        'Für alle Projekte auf einmal: Zahnrad-Menü der Menüleisten-App oder „…“-Menü der Projektliste.',
       thisWindow: 'dieses Fenster',
       folderMissing: 'Ordner fehlt',
       all: (n) => 'Alle ' + n,
@@ -179,16 +179,8 @@
 
   const STATUS_ORDER = { working: 0, waiting: 1, done: 2 };
 
-  function hash(text) {
-    let h = 0;
-    for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-    return h;
-  }
-
   function colorOf(project) {
-    return Number.isInteger(project.color)
-      ? PALETTE[project.color % PALETTE.length]
-      : PALETTE[hash(project.dir) % DEFAULT_COLORS];
+    return projectColor(project.dir, project.color);
   }
 
   function titleOf(session) {
@@ -359,6 +351,20 @@
       swatch.style.setProperty('--pc', color);
       node.append(swatch);
     });
+
+    // This project's VS Code window takes on the color too. (All projects at
+    // once: gear menu of the menu bar app, or the commands of the extension.)
+    const option = el('label', 'picker-option');
+    option.title = T.colorWindowHint;
+    const box = el('input');
+    box.type = 'checkbox';
+    box.checked = project.colorWindow === true;
+    box.addEventListener('change', () => {
+      project.colorWindow = box.checked;
+      vscode.postMessage({ type: 'setColorWindow', dir: project.dir, value: box.checked });
+    });
+    option.append(box, el('span', null, T.colorWindow));
+    node.append(option);
     return node;
   }
 

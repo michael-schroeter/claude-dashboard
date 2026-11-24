@@ -2,3 +2,5 @@ dist/
 .DS_Store
 # Personal working notes for Claude – not published.
 CLAUDE.md
+# Written by the extension itself when "colored windows" is on.
+.vscode/
